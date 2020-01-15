@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "mm_tool/version"
 
 Gem::Specification.new do |spec|
-  spec.name        = 'middlemac'
+  spec.name        = 'mm_tool'
   spec.version     = MmTool::VERSION
   spec.authors     = ['Jim Derry']
   spec.email       = ['balthisar@gmail.com']

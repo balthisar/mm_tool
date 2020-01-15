@@ -6,31 +6,34 @@
 ################################################################################
 
 require 'fileutils'
-require_relative '../lib/mm_tool/version'
+require_relative '../lib/mm_tool'
 
 
 module MmToolCli
 
-  class Cli
-
-    def self.print_help(*args)
-      puts "DUDE"
-      puts args.count, $0
-      if args.count == 0
-        puts <<-HEREDOC
-        HERE!!!
-        HEREDOC
-      end # if 
-    end # print_help
+  def self.print_help(*args)
+    puts "DUDE"
+    puts args.count, $0
+    if args.count == 0
+      puts <<-HEREDOC
+      HERE!!!
+      HEREDOC
+    end # if
+  end # print_help
 
 
-  end # class Cli
-
-end # module MiddlemacCli
+end # module MmToolCli
 
 
 ###########################################################
 # Main
 ###########################################################
 
-MmToolCli::Cli.print_help(ARGV)
+#MmToolCli.print_help(ARGV)
+
+cm = MmTool::Configuration::ConfigurationManager.new
+
+cm.define_setting :name, "jim", "This is the name of something."
+
+pp cm[:name]
+pp cm.setting(:name).value
