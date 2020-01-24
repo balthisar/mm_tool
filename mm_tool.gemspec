@@ -39,7 +39,9 @@ Gem::Specification.new do |spec|
 
   
   # Additional dependencies
-  spec.add_runtime_dependency 'tty-screen'
+  spec.add_runtime_dependency 'tty'
+  #spec.add_runtime_dependency 'pastel'
+  #spec.add_runtime_dependency 'tty-screen'
   spec.add_runtime_dependency 'ncursesw'
   spec.add_runtime_dependency 'curses'
   spec.add_runtime_dependency 'nokogiri'

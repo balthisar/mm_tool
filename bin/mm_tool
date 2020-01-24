@@ -7,23 +7,59 @@
 
 require 'fileutils'
 require 'tty-screen'
+require 'tty-table'
+require 'pastel'
 require_relative '../lib/mm_tool'
 
 
 module MmToolCli
 
-  def self.print_help(*args)
+  @app = MmTool::ApplicationMain.sharedApplication
+  @p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
 
+
+  #======================================================
+  # Print Help
+  #======================================================
+  def self.print_help(*args)
     width = TTY::Screen.width
 
+    header = <<~HEREDOC
+      #{@p.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
+      
+      Peforms media analysis and reports on files that don't meet quality requirements and/or files that
+      have containers and/or streams of undesired types. Files with undesired containers and/or streams
+      can optionally be transcoded into a new file.
+      
+      You must specify a file or a directory. Specifying a directory implies a recursive search for files
+      matching the #{@p.bold('--container-extension')} option.
 
-    puts "DUDE, screen is #{width} columns."
-    puts args.count, $0
-    if args.count == 0
-      puts <<-HEREDOC
-      HERE!!!
-      HEREDOC
-    end # if
+      Options and file are processed as they occur, and remain in effect for subsequent input files until
+      encountered again with a different value.
+
+    HEREDOC
+
+    table = TTY::Table.new [ [header] ]
+    puts table.render(:basic, :multiline => true)
+
+
+    table = TTY::Table.new ['header1','header2'], [['a1', 'a2'], ['b1', 'b2']]
+    puts table.render(:ascii)
+
+    renderer = TTY::Table::Renderer::Unicode.new(table)
+    puts "render HERE"
+    puts renderer.render
+    puts "render DONE"
+
+    #puts header
+
+    @app.options.map { |i| i[1] }
+           .map { |i| i[:help_group] }
+           .uniq
+           .each do |group|
+      puts group
+    end # .map
+
   end # print_help
 
 
@@ -36,8 +72,3 @@ end # module MmToolCli
 
 MmToolCli.print_help(ARGV)
 
-app = MmTool::ApplicationMain.sharedApplication
-
-pp app.options[:media_files]
-app.options[:media_files][:value] = "Hello, Jim"
-pp app.options[:media_files][:value]
