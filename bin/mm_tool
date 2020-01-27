@@ -14,8 +14,8 @@ require_relative '../lib/mm_tool'
 
 module MmToolCli
 
-  @app = MmTool::ApplicationMain.sharedApplication
-  @p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
+  @@app = MmTool::ApplicationMain.sharedApplication
+  @@p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
 
 
   #======================================================
@@ -23,47 +23,132 @@ module MmToolCli
   #======================================================
   def self.print_help(*args)
     width = TTY::Screen.width
-
+    hang_arg = self.longest_arg_length + 6
     header = <<~HEREDOC
-      #{@p.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
+      #{@@p.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
       
       Peforms media analysis and reports on files that don't meet quality requirements and/or files that
       have containers and/or streams of undesired types. Files with undesired containers and/or streams
       can optionally be transcoded into a new file.
       
       You must specify a file or a directory. Specifying a directory implies a recursive search for files
-      matching the #{@p.bold('--container-extension')} option.
+      matching the #{@@p.bold('--container-extension')} option.
 
       Options and file are processed as they occur, and remain in effect for subsequent input files until
       encountered again with a different value.
-
     HEREDOC
 
-    table = TTY::Table.new [ [header] ]
-    puts table.render(:basic, :multiline => true)
+    #puts self.hanging_string(string: header, hang: 3, margin: width)
+
+    self.groups_array.each do |group|
+
+      puts "\n#{@@p.bold(group)}\n"
+
+      @@app.options.collect { |option| option[1] }
+          .select { |attribute| attribute[:help_group] == group }
+          .each do |attributes|
+
+        s = attributes[:arg_short]
+        l = attributes[:arg_long]
+        f = attributes[:arg_format]
+        d = attributes[:help_desc]
+
+        a = "     #{l}"
+        if s && f
+          a = " #{s}, #{l} #{f}"
+        elsif s
+          a = " #{s}, #{l}"
+        elsif f
+          a = "     #{l} #{f}"
+        end
+        a = a + " " * (hang_arg - a.length)
+
+        puts self.hanging_string(string: a + d, hang: hang_arg, margin: width)
+
+      end # do |attributes|
 
 
-    table = TTY::Table.new ['header1','header2'], [['a1', 'a2'], ['b1', 'b2']]
-    puts table.render(:ascii)
+    end # each group
 
-    renderer = TTY::Table::Renderer::Unicode.new(table)
-    puts "render HERE"
-    puts renderer.render
-    puts "render DONE"
 
-    #puts header
 
-    @app.options.map { |i| i[1] }
-           .map { |i| i[:help_group] }
-           .uniq
-           .each do |group|
-      puts group
-    end # .map
 
-  end # print_help
+  end
 
+
+  #======================================================
+  # Get an array of argument groups.
+  #======================================================
+  def self.groups_array
+    @@app.options.collect { |i| i[1] }
+        .collect { |i| i[:help_group] }
+        .uniq
+  end
+
+
+  #======================================================
+  # Find the length of the longest argument label.
+  #======================================================
+  def self.longest_arg_length
+    @@app.options.collect { |i| i[1] }
+        .collect { |i| "#{i[:arg_short]}, #{i[:arg_long]} #{i[:arg_format]}".length }
+        .max
+  end
+
+
+  #======================================================
+  # Return a string: with a hanging indent of hang: and a
+  # right margin of margin:.
+  #======================================================
+  def self.hanging_string( string:, hang: 0, margin: 78 )
+    indent_spaces = " " * hang
+    result = []
+
+    # Each individual paragraph should end with two newlines; therefore convert
+    # individual newlines into spaces, and break the paragraphs into a split.
+    string.gsub(/\n\n/, "\f").gsub(/\n/, " ").split(/\f/).each do |line|
+
+      buffer = ''
+
+      samp = line.split(/\s/)
+
+      line.split(/\s/).each do |word|
+
+        len_buffer = buffer.gsub(/\e\[([;\d]+)?m/, '').length
+        len_space = len_buffer == 0 ? 0 : 1
+        len_word = word.gsub(/\e\[([;\d]+)?m/, '').length
+        width = result.count == 0 ? margin : margin - hang
+
+        #word = " " if word == "" && result.count == 0 && len_buffer == 0
+
+        if len_buffer + len_space + len_word <= width
+          buffer = len_buffer == 0 ? word : buffer + " " + word
+        else
+          if result.count == 0
+            result << buffer + "\n"
+          else
+            result << indent_spaces + buffer + "\n"
+          end
+          buffer = word
+        end
+
+      end # line
+
+      if result.count == 0
+        result << buffer + "\n\n"
+      else
+        result << indent_spaces + buffer + "\n\n"
+      end
+
+    end
+
+    result.join[0...-1]
+  end
 
 end # module MmToolCli
+
+
+
 
 
 ###########################################################
