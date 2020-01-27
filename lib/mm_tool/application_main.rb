@@ -51,7 +51,7 @@ module MmTool
               :arg_format => nil,
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                Don't show uninteresting files in the output. Uninteresting files meet all of our requirements, and 
+                Don't show uninteresting files in the output. Uninteresting files meet all of our requirements, and
                 can clutter up the display.
               HEREDOC
           },
@@ -88,7 +88,7 @@ module MmTool
               :arg_format => nil,
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                Show the raw XML information for the media file instead of the summary table. This implies 
+                Show the raw XML information for the media file instead of the summary table. This implies
                 #{p.bold('--no-transcode')}.
               HEREDOC
           },
@@ -121,8 +121,8 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
-                If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default 
+                If #{p.bold('--transcode')} is specified, and the codec of the stream is not on this list, then
+                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
                 is #{p.bold('%s')}.
               HEREDOC
           },
@@ -136,7 +136,7 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
-                If #{p.bold('---transcode')}  is specified, and the codec of the stream is not on this list, then
+                If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
                 the stream will be transcoded to the #{p.underline('first')} item in this list. The default 
                 is #{p.bold('%s')}.
               HEREDOC
@@ -152,7 +152,7 @@ module MmTool
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
                 If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default 
+                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
                 is #{p.bold('%s')}.
               HEREDOC
           },
@@ -165,7 +165,7 @@ module MmTool
               :arg_format => '<langs>',
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
-                A comma-separated list of languages whose audio streams should not be discarded. If 
+                A comma-separated list of languages whose audio streams should not be discarded. If
                 #{p.bold('--transcode')} is specified, audio streams with languages that are not on this list
                 will be discarded unless it is the only stream. Use the special language code  #{p.bold('und')}
                 to ensure that streams without a designated language are not discarded! The default is #{p.bold('%s')}.
@@ -180,7 +180,7 @@ module MmTool
               :arg_format => '<langs>',
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
-                A comma-separated list of languages whose video streams should not be discarded. If 
+                A comma-separated list of languages whose video streams should not be discarded. If
                 #{p.bold('--transcode')} is specified, video streams with languages that are not on this list
                 will be discarded unless it is the only stream. Use the special language code  #{p.bold('und')}
                 to ensure that streams without a designated language are not discarded! The default is #{p.bold('%s')}.
@@ -195,7 +195,7 @@ module MmTool
               :arg_format => '<langs>',
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
-                A comma-separated list of languages whose subtitles should not be discarded. If 
+                A comma-separated list of languages whose subtitles should not be discarded. If
                 #{p.bold('--transcode')} is specified, subtitles of languages that are not on this list
                 will be discarded. Use the special language code  #{p.bold('und')} to ensure that streams
                 without a designated language are not discarded! The default is #{p.bold('%s')}.
@@ -216,8 +216,8 @@ module MmTool
               :arg_format => nil,
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
-                Perform transcoding if necessary. Containers and streams that are not in preferred formats will be 
-                transcoded; streams that are not in the preferred language will be dropped, unless they are the 
+                Perform transcoding if necessary. Containers and streams that are not in preferred formats will be
+                transcoded; streams that are not in the preferred language will be dropped, unless they are the
                 only video or only audio stream.
               HEREDOC
           },
@@ -244,7 +244,8 @@ module MmTool
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
                 When #{p.bold('--transcode')} is specified, new files will be written using the original filename
-                plus this suffix. The default is #{p.bold('%s')}.
+                and applicable extension, and the original file will be renamed plus this suffix. The default
+                is #{p.bold('%s')}.
               HEREDOC
           },
 

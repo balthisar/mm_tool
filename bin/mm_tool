@@ -22,7 +22,7 @@ module MmToolCli
   # Print Help
   #======================================================
   def self.print_help(*args)
-    width = TTY::Screen.width
+    width = TTY::Screen.width - 1
     hang_arg = self.longest_arg_length + 6
     header = <<~HEREDOC
       #{@@p.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
@@ -38,15 +38,14 @@ module MmToolCli
       encountered again with a different value.
     HEREDOC
 
-    #puts self.hanging_string(string: header, hang: 3, margin: width)
+    puts self.hanging_string(string: header, hang: 3, margin: width)
 
     self.groups_array.each do |group|
 
-      puts "\n#{@@p.bold(group)}\n"
+      puts "\n#{@@p.bold(group)}\n\n"
 
-      @@app.options.collect { |option| option[1] }
-          .select { |attribute| attribute[:help_group] == group }
-          .each do |attributes|
+      @@app.options.select { |option| @@app.options[option][:help_group] == group }
+          .each do | argument, attributes |
 
         s = attributes[:arg_short]
         l = attributes[:arg_long]
@@ -63,9 +62,40 @@ module MmToolCli
         end
         a = a + " " * (hang_arg - a.length)
 
-        puts self.hanging_string(string: a + d, hang: hang_arg, margin: width)
+        arg = "#{a}#{d}" % @@app[argument].to_s
 
-      end # do |attributes|
+        puts self.hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
+
+
+      end
+
+
+
+
+      #@@app.options.collect { |option| option[1] }
+      #    .select { |attribute| attribute[:help_group] == group }
+      #    .each do |attributes|
+      #
+      #  s = attributes[:arg_short]
+      #  l = attributes[:arg_long]
+      #  f = attributes[:arg_format]
+      #  d = attributes[:help_desc]
+      #
+      #  a = "     #{l}"
+      #  if s && f
+      #    a = " #{s}, #{l} #{f}"
+      #  elsif s
+      #    a = " #{s}, #{l}"
+      #  elsif f
+      #    a = "     #{l} #{f}"
+      #  end
+      #  a = a + " " * (hang_arg - a.length)
+      #
+      #  #arg = "#{a}#{d}" % @@app[]
+      #
+      #  puts self.hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
+      #
+      #end # do |attributes|
 
 
     end # each group
@@ -114,15 +144,22 @@ module MmToolCli
 
       line.split(/\s/).each do |word|
 
+        word = ' ' if word.length == 0
+
         len_buffer = buffer.gsub(/\e\[([;\d]+)?m/, '').length
-        len_space = len_buffer == 0 ? 0 : 1
-        len_word = word.gsub(/\e\[([;\d]+)?m/, '').length
+
+        if len_buffer == 0 || buffer[-1] == ' '
+          added_word = word
+        else
+          added_word = ' ' + word
+        end
+
+        len_word = added_word.gsub(/\e\[([;\d]+)?m/, '').length
+
         width = result.count == 0 ? margin : margin - hang
 
-        #word = " " if word == "" && result.count == 0 && len_buffer == 0
-
-        if len_buffer + len_space + len_word <= width
-          buffer = len_buffer == 0 ? word : buffer + " " + word
+        if len_buffer + len_word <= width
+          buffer = buffer + added_word
         else
           if result.count == 0
             result << buffer + "\n"
@@ -146,9 +183,6 @@ module MmToolCli
   end
 
 end # module MmToolCli
-
-
-
 
 
 ###########################################################
