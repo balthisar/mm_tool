@@ -34,7 +34,7 @@ module MmTool
           :container_files => {
               :default    => %w(mp4 mkv avi 3gp flv),
               :value      => nil,
-              :arg_short  => '-c',
+              :arg_short  => nil,
               :arg_long   => '--containers',
               :arg_format => '<extensions>',
               :help_group => 'Main Options',
@@ -71,7 +71,7 @@ module MmTool
           :version => {
               :default    => FalseClass,
               :value      => nil,
-              :arg_short  => '-V',
+              :arg_short  => nil,
               :arg_long   => '--version',
               :arg_format => nil,
               :help_group => 'Main Options',
@@ -90,6 +90,18 @@ module MmTool
               :help_desc  => <<~HEREDOC
                 Show the raw XML information for the media file instead of the summary table. This implies
                 #{p.bold('--no-transcode')}.
+              HEREDOC
+          },
+
+          :stop_processing => {
+              :default    => FalseClass,
+              :value      => nil,
+              :arg_short  => nil,
+              :arg_long   => '--',
+              :arg_format => nil,
+              :help_group => 'Main Options',
+              :help_desc  => <<~HEREDOC
+                Stops further processing of input arguments, which can be useful in scripting environments.
               HEREDOC
           },
 
@@ -137,7 +149,7 @@ module MmTool
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
                 If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default 
+                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
                 is #{p.bold('%s')}.
               HEREDOC
           },
@@ -191,7 +203,7 @@ module MmTool
               :default    => %w(und eng spa chi zho),
               :value      => nil,
               :arg_short  => nil,
-              :arg_long   => '--keep-langs-audio',
+              :arg_long   => '--keep-langs-subs',
               :arg_format => '<langs>',
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
@@ -265,7 +277,7 @@ module MmTool
           :fix_undefined_language => {
               :default    => TrueClass,
               :value      => nil,
-              :arg_short  => nil,
+              :arg_short  => 'u',
               :arg_long   => '--no-fix-undefined-language',
               :arg_format => nil,
               :help_group => 'Transcoding Options',

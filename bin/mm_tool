@@ -21,7 +21,7 @@ module MmToolCli
   #======================================================
   # Print Help
   #======================================================
-  def self.print_help(*args)
+  def self.print_help
     width = TTY::Screen.width - 1
     hang_arg = self.longest_arg_length + 6
     header = <<~HEREDOC
@@ -34,8 +34,10 @@ module MmToolCli
       You must specify a file or a directory. Specifying a directory implies a recursive search for files
       matching the #{@@p.bold('--container-extension')} option.
 
-      Options and file are processed as they occur, and remain in effect for subsequent input files until
-      encountered again with a different value.
+      Options and files are processed as they occur, and remain in effect for subsequent input files until
+      encountered again with a different value. Boolean flags shown below modify default behavior. They
+      can be undone for subsequent input files with the capitalized version of the short flag, or by adding
+      or deleting #{@@p.bold('no-')} for the verbose argument form.
     HEREDOC
 
     puts self.hanging_string(string: header, hang: 3, margin: width)
@@ -62,41 +64,11 @@ module MmToolCli
         end
         a = a + " " * (hang_arg - a.length)
 
-        arg = "#{a}#{d}" % @@app[argument].to_s
+        arg = "#{a}#{d}" % self.format_value(@@app[argument])
 
         puts self.hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
 
-
       end
-
-
-
-
-      #@@app.options.collect { |option| option[1] }
-      #    .select { |attribute| attribute[:help_group] == group }
-      #    .each do |attributes|
-      #
-      #  s = attributes[:arg_short]
-      #  l = attributes[:arg_long]
-      #  f = attributes[:arg_format]
-      #  d = attributes[:help_desc]
-      #
-      #  a = "     #{l}"
-      #  if s && f
-      #    a = " #{s}, #{l} #{f}"
-      #  elsif s
-      #    a = " #{s}, #{l}"
-      #  elsif f
-      #    a = "     #{l} #{f}"
-      #  end
-      #  a = a + " " * (hang_arg - a.length)
-      #
-      #  #arg = "#{a}#{d}" % @@app[]
-      #
-      #  puts self.hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
-      #
-      #end # do |attributes|
-
 
     end # each group
 
@@ -127,6 +99,17 @@ module MmToolCli
 
 
   #======================================================
+  # Format an argument's values to a printable value.
+  #======================================================
+  def self.format_value(value)
+    if value.instance_of?(Array)
+      return value.join(',')
+    else
+      return value
+    end
+  end
+
+  #======================================================
   # Return a string: with a hanging indent of hang: and a
   # right margin of margin:.
   #======================================================
@@ -139,9 +122,6 @@ module MmToolCli
     string.gsub(/\n\n/, "\f").gsub(/\n/, " ").split(/\f/).each do |line|
 
       buffer = ''
-
-      samp = line.split(/\s/)
-
       line.split(/\s/).each do |word|
 
         word = ' ' if word.length == 0
@@ -182,6 +162,194 @@ module MmToolCli
     result.join[0...-1]
   end
 
+
+  #======================================================
+  # Run the CLI.
+  #======================================================
+  def self.run_cli(args)
+
+    while args.count > 0 do
+
+      # Convert single hyphen arguments to one or more multi-hyphen
+      # arguments. Doing this as an extra step eliminates redundancy,
+      # but also allows -abc in place of -a -b -c.
+      if args[0] =~ /^-[A-Za-z]+$/
+
+        args[0][1..-1].reverse.each_char do |char|
+
+          case char
+
+          when "h"
+            args.insert(1, "--help")
+          when "d"
+            args.insert(1, "--drop-subs")
+          when "D"
+            args.insert(1, "--no-drop-subs")
+          when "s"
+            args.insert(1, "--skip-boring-files")
+          when "S"
+            args.insert(1, "--no-skip-boring-files")
+          when "t"
+            args.insert(1, "--transcode")
+          when "T"
+            args.insert(1, "--no-transcode")
+          when "u"
+            args.insert(1, "--no-fix-undefined-language")
+          when "U"
+            args.insert(1, "--fix-undefined-language")
+          when "v"
+            args.insert(1, "--verbose")
+          when "V"
+            args.insert(1, "--no-verbose")
+          when "w"
+            args.insert(1, "--no-quality-reports ")
+          when "W"
+            args.insert(1, "--quality-reports ")
+          when "x"
+            args.insert(1, "--xml")
+          when "X"
+            args.insert(1, "--no-xml")
+          else
+            args.insert(1, "--ERROR")
+          end
+
+        end
+
+        args.shift
+        next
+      end
+
+
+      # The main loop processes options, commands, and files in first-in,
+      # first out order, which is the normal Unix way compared to how
+      # Ruby scripts try to handle things.
+      case args[0]
+
+
+      #-----------------------
+      # Main Options
+      #-----------------------
+
+      when '--help'
+        self.print_help
+        exit 0
+
+      when '--containers'
+        unless args[1]
+          STDERR.puts "Error: option #{args[0]} was specified, but no value was given."
+          exit 1
+        end
+        @@app[:container_files] = args[1]
+        puts @@app[:container_files]
+        args.shift
+
+      when '--skip-boring-files'
+        puts args[0]
+
+      when '--no-skip-boring-files'
+        puts args[0]
+
+      when '--verbose'
+        puts args[0]
+
+      when '--no-verbose'
+        puts args[0]
+
+      when '--version'
+        puts "#{File.basename $0}, version #{MmTool::VERSION}"
+
+      when '--xml'
+        puts args[0]
+
+      when '--no-xml'
+        puts args[0]
+
+      when '--'
+        break
+
+      #-----------------------
+      # Media
+      #-----------------------
+
+      when '--containers-preferred'
+        puts args[0]
+
+      when '--codec-audio-preferred'
+        puts args[0]
+
+      when '--codec-video-preferred'
+        puts args[0]
+
+      when '--codec-subs-preferred'
+        puts args[0]
+
+      when '--keep-langs-audio'
+        puts args[0]
+
+      when '--keep-langs-video'
+        puts args[0]
+
+      when '--keep-langs-subs'
+        puts args[0]
+
+      #-----------------------
+      # Transcoding
+      #-----------------------
+
+      when '--transcode'
+        puts args[0]
+
+      when '--no-transcode'
+        puts args[0]
+
+      when '--drop-subs'
+        puts args[0]
+
+      when '--no-drop-subs'
+        puts args[0]
+
+      when '--suffix'
+        puts args[0]
+
+      when '--undefined-language'
+        puts args[0]
+
+      when '--no-fix-undefined-language'
+        puts args[0]
+
+      when '--fix-undefined-language'
+        puts args[0]
+
+      #-----------------------
+      # Quality
+      #-----------------------
+
+      when '--no-quality-reports'
+        puts args[0]
+
+      when '--quality-reports'
+        puts args[0]
+
+      when '--min-width'
+        puts args[0]
+
+      when '--min-channels'
+        puts args[0]
+
+      #-----------------------
+      # Other
+      #-----------------------
+
+      else
+        puts "error"
+      end # case
+
+      args.shift
+
+    end # while
+  end
+
+
 end # module MmToolCli
 
 
@@ -189,5 +357,5 @@ end # module MmToolCli
 # Main
 ###########################################################
 
-MmToolCli.print_help(ARGV)
+MmToolCli.run_cli(ARGV)
 
