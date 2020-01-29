@@ -2,17 +2,19 @@
 # MmTool
 #  The main application performs all of the work.
 ################################################################################
+
 module MmTool
 
-  require 'pastel'
-
   class ApplicationMain
+
+    require "mm_tool/mm_tool_console_output_helpers"
+    include MmToolConsoleOutputHelpers
 
     #------------------------------------------------------------
     # Define and setup module level variables.
     #------------------------------------------------------------
     def initialize
-      p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
+
       @options = {
 
           #----------------------------
@@ -39,7 +41,7 @@ module MmTool
               :arg_format => '<extensions>',
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                A comma-separated list of file extensions assumed to be media files. The default is #{p.bold('%s')}.
+                A comma-separated list of file extensions assumed to be media files. The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -89,7 +91,7 @@ module MmTool
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
                 Show the raw XML information for the media file instead of the summary table. This implies
-                #{p.bold('--no-transcode')}.
+                #{c.bold('--no-transcode')}.
               HEREDOC
           },
 
@@ -118,9 +120,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of file extensions defining preferred media containers. If the container
-                is not one of these types, then it will be reported. If #{p.bold('--transcode')} is specified, and
-                a file is a non-preferred container, then it will be transcoded to the #{p.underline('first')} item
-                in this list. The default is #{p.bold('%s')}.
+                is not one of these types, then it will be reported. If #{c.bold('--transcode')} is specified, and
+                a file is a non-preferred container, then it will be transcoded to the #{c.underline('first')} item
+                in this list. The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -133,9 +135,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
-                If #{p.bold('--transcode')} is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
-                is #{p.bold('%s')}.
+                If #{c.bold('--transcode')} is specified, and the codec of the stream is not on this list, then
+                the stream will be transcoded to the #{c.underline('first')} item in this list. The default
+                is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -148,9 +150,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
-                If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
-                is #{p.bold('%s')}.
+                If #{c.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
+                the stream will be transcoded to the #{c.underline('first')} item in this list. The default
+                is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -163,9 +165,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of preferred audio codecs. Streams of this codec will not be transcoded.
-                If #{p.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
-                the stream will be transcoded to the #{p.underline('first')} item in this list. The default
-                is #{p.bold('%s')}.
+                If #{c.bold('--transcode')}  is specified, and the codec of the stream is not on this list, then
+                the stream will be transcoded to the #{c.underline('first')} item in this list. The default
+                is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -178,9 +180,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of languages whose audio streams should not be discarded. If
-                #{p.bold('--transcode')} is specified, audio streams with languages that are not on this list
-                will be discarded unless it is the only stream. Use the special language code  #{p.bold('und')}
-                to ensure that streams without a designated language are not discarded! The default is #{p.bold('%s')}.
+                #{c.bold('--transcode')} is specified, audio streams with languages that are not on this list
+                will be discarded unless it is the only stream. Use the special language code  #{c.bold('und')}
+                to ensure that streams without a designated language are not discarded! The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -193,9 +195,9 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of languages whose video streams should not be discarded. If
-                #{p.bold('--transcode')} is specified, video streams with languages that are not on this list
-                will be discarded unless it is the only stream. Use the special language code  #{p.bold('und')}
-                to ensure that streams without a designated language are not discarded! The default is #{p.bold('%s')}.
+                #{c.bold('--transcode')} is specified, video streams with languages that are not on this list
+                will be discarded unless it is the only stream. Use the special language code  #{c.bold('und')}
+                to ensure that streams without a designated language are not discarded! The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -208,10 +210,10 @@ module MmTool
               :help_group => 'Media Options',
               :help_desc  => <<~HEREDOC
                 A comma-separated list of languages whose subtitles should not be discarded. If
-                #{p.bold('--transcode')} is specified, subtitles of languages that are not on this list
-                will be discarded. Use the special language code  #{p.bold('und')} to ensure that streams
-                without a designated language are not discarded! The default is #{p.bold('%s')}.
-                See also #{p.bold('--codec-subs-preferred')}, whose condition is AND with this condition
+                #{c.bold('--transcode')} is specified, subtitles of languages that are not on this list
+                will be discarded. Use the special language code  #{c.bold('und')} to ensure that streams
+                without a designated language are not discarded! The default is #{c.bold('%s')}.
+                See also #{c.bold('--codec-subs-preferred')}, whose condition is AND with this condition
                 (both must be true to pass through the subtitle).
               HEREDOC
           },
@@ -243,7 +245,7 @@ module MmTool
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
                 When specified, this script will drop all subtitles from files in the population, regardless of
-                the language. This directive has no effect if #{p.bold('--transcode')} is not specifed.
+                the language. This directive has no effect if #{c.bold('--transcode')} is not specifed.
               HEREDOC
           },
 
@@ -255,9 +257,9 @@ module MmTool
               :arg_format => '<suffix>',
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
-                When #{p.bold('--transcode')} is specified, new files will be written using the original filename
+                When #{c.bold('--transcode')} is specified, new files will be written using the original filename
                 and applicable extension, and the original file will be renamed plus this suffix. The default
-                is #{p.bold('%s')}.
+                is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -269,8 +271,8 @@ module MmTool
               :arg_format => '<lang>',
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
-                When #{p.bold('--transcode')} is specified, streams in the new file that have an undefined language
-                identified will be set to this option's value. The default is #{p.bold('%s')}.
+                When #{c.bold('--transcode')} is specified, streams in the new file that have an undefined language
+                identified will be set to this option's value. The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -282,7 +284,7 @@ module MmTool
               :arg_format => nil,
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
-                Prevent this program from fixing undefined languages assigned to streams. See #{p.bold('--undefined-language')}.
+                Prevent this program from fixing undefined languages assigned to streams. See #{c.bold('--undefined-language')}.
               HEREDOC
           },
 
@@ -312,7 +314,7 @@ module MmTool
               :arg_format => '<width>',
               :help_group => 'Quality Options',
               :help_desc  => <<~HEREDOC
-                Specify the minimum width that is considered acceptable quality. The default is #{p.bold('%s')}.
+                Specify the minimum width that is considered acceptable quality. The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -324,7 +326,7 @@ module MmTool
               :arg_format => '<channels>',
               :help_group => 'Quality Options',
               :help_desc  => <<~HEREDOC
-                Specify the minimum number of audio channels that are considered acceptable quality. The default is #{p.bold('%s')}.
+                Specify the minimum number of audio channels that are considered acceptable quality. The default is #{c.bold('%s')}.
               HEREDOC
           },
       }
