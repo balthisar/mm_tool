@@ -277,7 +277,7 @@ module MmTool
           :fix_undefined_language => {
               :default    => TrueClass,
               :value      => nil,
-              :arg_short  => 'u',
+              :arg_short  => '-u',
               :arg_long   => '--no-fix-undefined-language',
               :arg_format => nil,
               :help_group => 'Transcoding Options',
@@ -344,9 +344,9 @@ module MmTool
     #======================================================
     def [](key)
       if @options.key?(key)
-        return @options[key][:value] ? @options[key][:value] : @options[key][:default]
+        @options[key][:value] ? @options[key][:value] : @options[key][:default]
       else
-        return nil
+        nil
       end
     end
 

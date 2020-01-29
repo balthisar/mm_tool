@@ -3,359 +3,406 @@
 ################################################################################
 # MmToolCli
 #  This file constitutes the command line interface for mm_tool.
-################################################################################
+###############################################################################
 
 require 'fileutils'
 require 'tty-screen'
-require 'tty-table'
 require 'pastel'
 require_relative '../lib/mm_tool'
 
 
-module MmToolCli
+module MmTool
 
-  @@app = MmTool::ApplicationMain.sharedApplication
-  @@p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
+  #=============================================================================
+  # Private, self-contained methods that we will use in the MmToolCliClass,
+  # that help in providing legible output on the command line.
+  #=============================================================================
+  module MmToolCliOutputHelpers
 
+    private
 
-  #======================================================
-  # Print Help
-  #======================================================
-  def self.print_help
-    width = TTY::Screen.width - 1
-    hang_arg = self.longest_arg_length + 6
-    header = <<~HEREDOC
-      #{@@p.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
-      
-      Peforms media analysis and reports on files that don't meet quality requirements and/or files that
-      have containers and/or streams of undesired types. Files with undesired containers and/or streams
-      can optionally be transcoded into a new file.
-      
-      You must specify a file or a directory. Specifying a directory implies a recursive search for files
-      matching the #{@@p.bold('--container-extension')} option.
-
-      Options and files are processed as they occur, and remain in effect for subsequent input files until
-      encountered again with a different value. Boolean flags shown below modify default behavior. They
-      can be undone for subsequent input files with the capitalized version of the short flag, or by adding
-      or deleting #{@@p.bold('no-')} for the verbose argument form.
-    HEREDOC
-
-    puts self.hanging_string(string: header, hang: 3, margin: width)
-
-    self.groups_array.each do |group|
-
-      puts "\n#{@@p.bold(group)}\n\n"
-
-      @@app.options.select { |option| @@app.options[option][:help_group] == group }
-          .each do | argument, attributes |
-
-        s = attributes[:arg_short]
-        l = attributes[:arg_long]
-        f = attributes[:arg_format]
-        d = attributes[:help_desc]
-
-        a = "     #{l}"
-        if s && f
-          a = " #{s}, #{l} #{f}"
-        elsif s
-          a = " #{s}, #{l}"
-        elsif f
-          a = "     #{l} #{f}"
-        end
-        a = a + " " * (hang_arg - a.length)
-
-        arg = "#{a}#{d}" % self.format_value(@@app[argument])
-
-        puts self.hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
-
-      end
-
-    end # each group
-
-
-
-
-  end
-
-
-  #======================================================
-  # Get an array of argument groups.
-  #======================================================
-  def self.groups_array
-    @@app.options.collect { |i| i[1] }
-        .collect { |i| i[:help_group] }
-        .uniq
-  end
-
-
-  #======================================================
-  # Find the length of the longest argument label.
-  #======================================================
-  def self.longest_arg_length
-    @@app.options.collect { |i| i[1] }
-        .collect { |i| "#{i[:arg_short]}, #{i[:arg_long]} #{i[:arg_format]}".length }
-        .max
-  end
-
-
-  #======================================================
-  # Format an argument's values to a printable value.
-  #======================================================
-  def self.format_value(value)
-    if value.instance_of?(Array)
-      return value.join(',')
-    else
-      return value
-    end
-  end
-
-  #======================================================
-  # Return a string: with a hanging indent of hang: and a
-  # right margin of margin:.
-  #======================================================
-  def self.hanging_string( string:, hang: 0, margin: 78 )
-    indent_spaces = " " * hang
-    result = []
-
-    # Each individual paragraph should end with two newlines; therefore convert
-    # individual newlines into spaces, and break the paragraphs into a split.
-    string.gsub(/\n\n/, "\f").gsub(/\n/, " ").split(/\f/).each do |line|
-
-      buffer = ''
-      line.split(/\s/).each do |word|
-
-        word = ' ' if word.length == 0
-
-        len_buffer = buffer.gsub(/\e\[([;\d]+)?m/, '').length
-
-        if len_buffer == 0 || buffer[-1] == ' '
-          added_word = word
-        else
-          added_word = ' ' + word
-        end
-
-        len_word = added_word.gsub(/\e\[([;\d]+)?m/, '').length
-
-        width = result.count == 0 ? margin : margin - hang
-
-        if len_buffer + len_word <= width
-          buffer = buffer + added_word
-        else
-          if result.count == 0
-            result << buffer + "\n"
-          else
-            result << indent_spaces + buffer + "\n"
-          end
-          buffer = word
-        end
-
-      end # line
-
-      if result.count == 0
-        result << buffer + "\n\n"
-      else
-        result << indent_spaces + buffer + "\n\n"
-      end
-
+    #------------------------------------------------------------
+    # Return an array of argument groups for the given
+    # application.
+    #------------------------------------------------------------
+    def argument_groups(application)
+      application.options.collect { |i| i[1] }
+          .collect { |i| i[:help_group] }
+          .uniq
     end
 
-    result.join[0...-1]
-  end
+
+    #------------------------------------------------------------
+    # Given an argument value, return it in a format suitable
+    # for output. In general, this means that we want to format
+    # array values in the way we expect to receive them as
+    # arguments on the command line.
+    #------------------------------------------------------------
+    def format_value(value)
+      if value.instance_of?(Array)
+        value.join(',')
+      else
+        value
+      end
+    end
 
 
-  #======================================================
-  # Run the CLI.
-  #======================================================
-  def self.run_cli(args)
+    #------------------------------------------------------------
+    # Given an application's argument, format the argument for
+    # display in help output. Optionally specify the entire
+    # width of the argument in order to right-pad it with spaces
+    # and/or truncate it to the given width.
+    #------------------------------------------------------------
+    def format_argument(argument, width = 0 )
+      s = argument[:arg_short] ? "#{argument[:arg_short]}," : nil
+      l = argument[:arg_format] ? "#{argument[:arg_long]} #{argument[:arg_format]}" : "#{argument[:arg_long]}"
+      f = " %-3s %s   " % [s, l]
+      if width > 0
+        "%-#{width}.#{width}s" % f
+      else
+        f
+      end
+    end
 
-    while args.count > 0 do
 
-      # Convert single hyphen arguments to one or more multi-hyphen
-      # arguments. Doing this as an extra step eliminates redundancy,
-      # but also allows -abc in place of -a -b -c.
-      if args[0] =~ /^-[A-Za-z]+$/
+    #------------------------------------------------------------
+    # Find the length of the longest argument label, including
+    # all desired padding, for the provided application.
+    #------------------------------------------------------------
+    def longest_arg_length(application)
+      application.options.collect { |i| i[1] }
+          .collect { |i| format_argument(i).length }
+          .max
+    end
 
-        args[0][1..-1].reverse.each_char do |char|
 
-          case char
+    #------------------------------------------------------------
+    # Return a string: with a hanging indent of hang: and a
+    # right margin of margin:.
+    #------------------------------------------------------------
+    def hanging_string( string:, hang: 0, margin: 78 )
+      indent_spaces = " " * hang
+      result = []
 
-          when "h"
-            args.insert(1, "--help")
-          when "d"
-            args.insert(1, "--drop-subs")
-          when "D"
-            args.insert(1, "--no-drop-subs")
-          when "s"
-            args.insert(1, "--skip-boring-files")
-          when "S"
-            args.insert(1, "--no-skip-boring-files")
-          when "t"
-            args.insert(1, "--transcode")
-          when "T"
-            args.insert(1, "--no-transcode")
-          when "u"
-            args.insert(1, "--no-fix-undefined-language")
-          when "U"
-            args.insert(1, "--fix-undefined-language")
-          when "v"
-            args.insert(1, "--verbose")
-          when "V"
-            args.insert(1, "--no-verbose")
-          when "w"
-            args.insert(1, "--no-quality-reports ")
-          when "W"
-            args.insert(1, "--quality-reports ")
-          when "x"
-            args.insert(1, "--xml")
-          when "X"
-            args.insert(1, "--no-xml")
+      # Each individual paragraph should end with two newlines; therefore convert
+      # individual newlines into spaces, and break the paragraphs into a split.
+      string.gsub(/\n\n/, "\f").gsub(/\n/, " ").split(/\f/).each do |line|
+
+        buffer = ''
+        line.split(/\s/).each do |word|
+
+          word = ' ' if word.length == 0
+
+          len_buffer = buffer.gsub(/\e\[([;\d]+)?m/, '').length
+
+          if len_buffer == 0 || buffer[-1] == ' '
+            added_word = word
           else
-            args.insert(1, "--ERROR")
+            added_word = ' ' + word
           end
 
+          len_word = added_word.gsub(/\e\[([;\d]+)?m/, '').length
+
+          width = result.count == 0 ? margin : margin - hang
+
+          if len_buffer + len_word <= width
+            buffer = buffer + added_word
+          else
+            if result.count == 0
+              result << buffer + "\n"
+            else
+              result << indent_spaces + buffer + "\n"
+            end
+            buffer = word
+          end
+
+        end # line
+
+        if result.count == 0
+          result << buffer + "\n\n"
+        else
+          result << indent_spaces + buffer + "\n\n"
         end
 
-        args.shift
-        next
       end
 
+      result.join[0...-1]
+    end
 
-      # The main loop processes options, commands, and files in first-in,
-      # first out order, which is the normal Unix way compared to how
-      # Ruby scripts try to handle things.
-      case args[0]
+  end # module MmToolCliOutputHelpers
 
 
-      #-----------------------
-      # Main Options
-      #-----------------------
+  #=============================================================================
+  # The MmToolCli class implements the command line interface for
+  # MmTool::ApplicationMain
+  #=============================================================================
+  class MmToolCli
 
-      when '--help'
-        self.print_help
-        exit 0
+    include MmToolCliOutputHelpers
 
-      when '--containers'
-        unless args[1]
-          STDERR.puts "Error: option #{args[0]} was specified, but no value was given."
-          exit 1
+    #------------------------------------------------------------
+    # Designated initializer.
+    #------------------------------------------------------------
+    def initialize(app_instance = MmTool::ApplicationMain.sharedApplication)
+      @app = app_instance
+      @pastel = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
+    end
+
+
+    #------------------------------------------------------------
+    # Property accessor
+    #------------------------------------------------------------
+    def app
+      @app
+    end
+
+
+    #------------------------------------------------------------
+    # Property accessor
+    #------------------------------------------------------------
+    def c
+      @pastel
+    end
+
+
+    #------------------------------------------------------------
+    # Print Help
+    #------------------------------------------------------------
+    def print_help
+      # Gather the basic dimensions required for output.
+      # Support a minimum width of 60, which is reasonable, and
+      # allow enough room to spacing around the longest argument.
+      width    = [TTY::Screen.width, 61].max - 1
+      hang_arg = longest_arg_length(app)
+
+      header = <<~HEREDOC
+        #{c.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
+        
+        Peforms media analysis and reports on files that don't meet quality requirements and/or files that
+        have containers and/or streams of undesired types. Files with undesired containers and/or streams
+        can optionally be transcoded into a new file.
+        
+        You must specify a file or a directory. Specifying a directory implies a recursive search for files
+        matching the #{c.bold('--container-extension')} option.
+  
+        Options and files are processed as they occur, and remain in effect for subsequent input files until
+        encountered again with a different value. Boolean flags shown below modify default behavior. They
+        can be undone for subsequent input files with the capitalized version of the short flag, or by adding
+        or deleting #{c.bold('no-')} for the verbose argument form.
+      HEREDOC
+
+      puts hanging_string(string: header, hang: 3, margin: width)
+
+      argument_groups(app).each do |group|
+
+        puts "\n#{c.bold(group)}\n\n"
+
+        app.options.select { |option| app.options[option][:help_group] == group }
+            .each do | argument, attributes |
+
+          arg = "#{format_argument(attributes, hang_arg)}#{attributes[:help_desc]}" % format_value(app[argument])
+          puts hanging_string(string: arg, hang: hang_arg, margin: width) + "\n"
+
+        end # do
+      end # each group
+    end # print_help
+
+
+    #======================================================
+    # Run the CLI.
+    #======================================================
+    def run_cli(args)
+
+      while args.count > 0 do
+
+        # Convert single hyphen arguments to one or more multi-hyphen
+        # arguments. Doing this as an extra step eliminates redundancy,
+        # but also allows -abc in place of -a -b -c.
+        if args[0] =~ /^-[A-Za-z]+$/
+
+          args[0][1..-1].reverse.each_char do |char|
+
+            case char
+
+            when "h"
+              args.insert(1, "--help")
+            when "d"
+              args.insert(1, "--drop-subs")
+            when "D"
+              args.insert(1, "--no-drop-subs")
+            when "s"
+              args.insert(1, "--skip-boring-files")
+            when "S"
+              args.insert(1, "--no-skip-boring-files")
+            when "t"
+              args.insert(1, "--transcode")
+            when "T"
+              args.insert(1, "--no-transcode")
+            when "u"
+              args.insert(1, "--no-fix-undefined-language")
+            when "U"
+              args.insert(1, "--fix-undefined-language")
+            when "v"
+              args.insert(1, "--verbose")
+            when "V"
+              args.insert(1, "--no-verbose")
+            when "w"
+              args.insert(1, "--no-quality-reports ")
+            when "W"
+              args.insert(1, "--quality-reports ")
+            when "x"
+              args.insert(1, "--xml")
+            when "X"
+              args.insert(1, "--no-xml")
+            else
+              args.insert(1, "--ERROR")
+            end
+
+          end
+
+          args.shift
+          next
         end
-        @@app[:container_files] = args[1]
-        puts @@app[:container_files]
+
+
+        # The main loop processes options, commands, and files in first-in,
+        # first out order, which is the normal Unix way compared to how
+        # Ruby scripts try to handle things.
+        case args[0]
+
+
+        #-----------------------
+        # Main Options
+        #-----------------------
+
+        when '--help'
+          self.print_help
+          exit 0
+
+        when '--containers'
+          unless args[1]
+            STDERR.puts "Error: option #{args[0]} was specified, but no value was given."
+            exit 1
+          end
+          app[:container_files] = args[1]
+          puts app[:container_files]
+          args.shift
+
+        when '--skip-boring-files'
+          puts args[0]
+
+        when '--no-skip-boring-files'
+          puts args[0]
+
+        when '--verbose'
+          puts args[0]
+
+        when '--no-verbose'
+          puts args[0]
+
+        when '--version'
+          puts "#{File.basename $0}, version #{MmTool::VERSION}"
+
+        when '--xml'
+          puts args[0]
+
+        when '--no-xml'
+          puts args[0]
+
+        when '--'
+          break
+
+        #-----------------------
+        # Media
+        #-----------------------
+
+        when '--containers-preferred'
+          puts args[0]
+
+        when '--codec-audio-preferred'
+          puts args[0]
+
+        when '--codec-video-preferred'
+          puts args[0]
+
+        when '--codec-subs-preferred'
+          puts args[0]
+
+        when '--keep-langs-audio'
+          puts args[0]
+
+        when '--keep-langs-video'
+          puts args[0]
+
+        when '--keep-langs-subs'
+          puts args[0]
+
+        #-----------------------
+        # Transcoding
+        #-----------------------
+
+        when '--transcode'
+          puts args[0]
+
+        when '--no-transcode'
+          puts args[0]
+
+        when '--drop-subs'
+          puts args[0]
+
+        when '--no-drop-subs'
+          puts args[0]
+
+        when '--suffix'
+          puts args[0]
+
+        when '--undefined-language'
+          puts args[0]
+
+        when '--no-fix-undefined-language'
+          puts args[0]
+
+        when '--fix-undefined-language'
+          puts args[0]
+
+        #-----------------------
+        # Quality
+        #-----------------------
+
+        when '--no-quality-reports'
+          puts args[0]
+
+        when '--quality-reports'
+          puts args[0]
+
+        when '--min-width'
+          puts args[0]
+
+        when '--min-channels'
+          puts args[0]
+
+        #-----------------------
+        # Other
+        #-----------------------
+
+        else
+          puts "error"
+        end # case
+
         args.shift
 
-      when '--skip-boring-files'
-        puts args[0]
+      end # while
+    end
 
-      when '--no-skip-boring-files'
-        puts args[0]
+    end # class MmToolCli
 
-      when '--verbose'
-        puts args[0]
-
-      when '--no-verbose'
-        puts args[0]
-
-      when '--version'
-        puts "#{File.basename $0}, version #{MmTool::VERSION}"
-
-      when '--xml'
-        puts args[0]
-
-      when '--no-xml'
-        puts args[0]
-
-      when '--'
-        break
-
-      #-----------------------
-      # Media
-      #-----------------------
-
-      when '--containers-preferred'
-        puts args[0]
-
-      when '--codec-audio-preferred'
-        puts args[0]
-
-      when '--codec-video-preferred'
-        puts args[0]
-
-      when '--codec-subs-preferred'
-        puts args[0]
-
-      when '--keep-langs-audio'
-        puts args[0]
-
-      when '--keep-langs-video'
-        puts args[0]
-
-      when '--keep-langs-subs'
-        puts args[0]
-
-      #-----------------------
-      # Transcoding
-      #-----------------------
-
-      when '--transcode'
-        puts args[0]
-
-      when '--no-transcode'
-        puts args[0]
-
-      when '--drop-subs'
-        puts args[0]
-
-      when '--no-drop-subs'
-        puts args[0]
-
-      when '--suffix'
-        puts args[0]
-
-      when '--undefined-language'
-        puts args[0]
-
-      when '--no-fix-undefined-language'
-        puts args[0]
-
-      when '--fix-undefined-language'
-        puts args[0]
-
-      #-----------------------
-      # Quality
-      #-----------------------
-
-      when '--no-quality-reports'
-        puts args[0]
-
-      when '--quality-reports'
-        puts args[0]
-
-      when '--min-width'
-        puts args[0]
-
-      when '--min-channels'
-        puts args[0]
-
-      #-----------------------
-      # Other
-      #-----------------------
-
-      else
-        puts "error"
-      end # case
-
-      args.shift
-
-    end # while
-  end
-
-
-end # module MmToolCli
+end # module MmToolCliModule
 
 
 ###########################################################
 # Main
 ###########################################################
 
-MmToolCli.run_cli(ARGV)
+cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.sharedApplication)
+cli.print_help
 
