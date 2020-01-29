@@ -129,6 +129,7 @@ module MmTool
       result.join[0...-1]
     end
 
+
   end # module MmToolCliOutputHelpers
 
 
@@ -136,6 +137,7 @@ module MmTool
   # The MmToolCli class implements the command line interface for
   # MmTool::ApplicationMain
   #=============================================================================
+  #noinspection RubyResolve
   class MmToolCli
 
     include MmToolCliOutputHelpers
@@ -144,7 +146,7 @@ module MmTool
     # Designated initializer.
     #------------------------------------------------------------
     def initialize(app_instance = MmTool::ApplicationMain.sharedApplication)
-      @app = app_instance
+      @app    = app_instance
       @pastel = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
     end
 
@@ -168,6 +170,7 @@ module MmTool
     #------------------------------------------------------------
     # Print Help
     #------------------------------------------------------------
+    #noinspection RubyResolve
     def print_help
       # Gather the basic dimensions required for output.
       # Support a minimum width of 60, which is reasonable, and
@@ -176,7 +179,7 @@ module MmTool
       hang_arg = longest_arg_length(app)
 
       header = <<~HEREDOC
-        #{c.bold('Usage:')} #{File.basename $0} [options...] <directory|file> [options...] <directory|file> ...
+        #{c.bold('Usage:')} #{File.basename($0)} [options...] <directory|file> [options...] <directory|file> ...
         
         Peforms media analysis and reports on files that don't meet quality requirements and/or files that
         have containers and/or streams of undesired types. Files with undesired containers and/or streams
@@ -208,11 +211,12 @@ module MmTool
     end # print_help
 
 
-    #======================================================
+    #------------------------------------------------------------
     # Run the CLI.
-    #======================================================
-    def run_cli(args)
+    #------------------------------------------------------------
+    def run(args)
 
+      path = nil
       while args.count > 0 do
 
         # Convert single hyphen arguments to one or more multi-hyphen
@@ -255,7 +259,7 @@ module MmTool
             when "X"
               args.insert(1, "--no-xml")
             else
-              args.insert(1, "--ERROR")
+              print_arg_error("Error: option #{c.bold(args[0])} was specified, but I don't know that that means.")
             end
 
           end
@@ -280,34 +284,29 @@ module MmTool
           exit 0
 
         when '--containers'
-          unless args[1]
-            STDERR.puts "Error: option #{args[0]} was specified, but no value was given."
-            exit 1
-          end
-          app[:container_files] = args[1]
-          puts app[:container_files]
+          app[:container_files] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
         when '--skip-boring-files'
-          puts args[0]
+          app[:skip_boring] = true
 
         when '--no-skip-boring-files'
-          puts args[0]
+          app[:skip_boring] = false
 
         when '--verbose'
-          puts args[0]
+          app[:verbose] = true
 
         when '--no-verbose'
-          puts args[0]
+          app[:verbose] = false
 
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"
 
         when '--xml'
-          puts args[0]
+          app[:xml] = true
 
         when '--no-xml'
-          puts args[0]
+          app[:xml] = false
 
         when '--'
           break
@@ -317,85 +316,136 @@ module MmTool
         #-----------------------
 
         when '--containers-preferred'
-          puts args[0]
+          app[:containers_preferred] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         when '--codec-audio-preferred'
-          puts args[0]
+          app[:codec_audio_preferred] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         when '--codec-video-preferred'
-          puts args[0]
+          app[:codec_video_preferred] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         when '--codec-subs-preferred'
-          puts args[0]
+          app[:codec_subs_preferred] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         when '--keep-langs-audio'
-          puts args[0]
+          app[:keep_langs_audio] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
-        when '--keep-langs-video'
-          puts args[0]
+        when '--keep_langs_video'
+          app[:keep_langs_video] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         when '--keep-langs-subs'
-          puts args[0]
+          app[:keep_langs_subs] = validate_arg_value(args[0], args[1]).split(',')
+          args.shift
 
         #-----------------------
         # Transcoding
         #-----------------------
 
         when '--transcode'
-          puts args[0]
+          app[:transcode] = true
 
         when '--no-transcode'
-          puts args[0]
+          app[:transcode] = false
 
         when '--drop-subs'
-          puts args[0]
+          app[:drop_subs] = true
 
         when '--no-drop-subs'
-          puts args[0]
+          app[:drop_subs] = false
 
         when '--suffix'
-          puts args[0]
+          app[:suffix] = validate_arg_value(args[0], args[1])
 
         when '--undefined-language'
-          puts args[0]
+          app[:suffix] = validate_arg_value(args[0], args[1])
 
         when '--no-fix-undefined-language'
-          puts args[0]
+          app[:fix_undefined_language] = false
 
         when '--fix-undefined-language'
-          puts args[0]
+          app[:fix_undefined_language] = true
 
         #-----------------------
         # Quality
         #-----------------------
 
         when '--no-quality-reports'
-          puts args[0]
+          app[:quality_reports] = false
 
         when '--quality-reports'
-          puts args[0]
+          app[:quality_reports] = true
 
         when '--min-width'
-          puts args[0]
+          app[:min_width] = validate_arg_value(args[0], args[1])
 
         when '--min-channels'
-          puts args[0]
+          app[:min_channels] = validate_arg_value(args[0], args[1])
 
         #-----------------------
         # Other
         #-----------------------
 
         else
-          puts "error"
+
+          # An unknown parameter was encountered, so let's stop everything.
+          if args[0] =~ /^--.*$/
+            print_arg_error("Error: option #{c.bold(args[0])} was specified, but I don't know that that means.")
+          end
+
+          # Otherwise, check for existence of the path, and warn or proceed.
+          path = File.expand_path(args[0])
+          if File.exist?(path)
+            app.run(path)
+          else
+            puts "Note: skipping #{c.bold(path)}, which seems not to exist."
+          end
+
         end # case
 
         args.shift
 
       end # while
+
+      # If path has never been set, then the user didn't specify anything to check,
+      # which is likely to be a mistake.
+      unless path
+        print_arg_error("You did not specify any input file(s) or directory(s). Use #{c.bold(File.basename($0))} for help.")
+      end
+
+    end # run_cli
+
+
+    #------------------------------------------------------------
+    # Displays an argument error message and exits the program.
+    # ------------------------------------------------------------
+    def print_arg_error(message)
+      width = [TTY::Screen.width, 61].max - 1
+      STDERR.puts hanging_string(string: message, hang: 3, margin: width)
+      exit 1
     end
 
-    end # class MmToolCli
 
+    #------------------------------------------------------------
+    # Perform a really simple validation of the given value for
+    # the given argument, returning the value if successful.
+    # ------------------------------------------------------------
+    def validate_arg_value(arg, value)
+      if !value
+        print_arg_error("Error: option #{c.bold(arg)} was specified, but no value was given.")
+      elsif value =~ /^-.*$/
+        print_arg_error("Error: option #{c.bold(arg)} was specified, but the value #{c.bold(value)} looks like another option argument.")
+      end
+      value
+    end
+
+
+  end # class MmToolCli
 end # module MmToolCliModule
 
 
@@ -404,5 +454,4 @@ end # module MmToolCliModule
 ###########################################################
 
 cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.sharedApplication)
-cli.print_help
-
+cli.run(ARGV)

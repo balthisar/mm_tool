@@ -8,9 +8,9 @@ module MmTool
 
   class ApplicationMain
 
-    #======================================================
+    #------------------------------------------------------------
     # Define and setup module level variables.
-    #======================================================
+    #------------------------------------------------------------
     def initialize
       p = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
       @options = {
@@ -44,7 +44,7 @@ module MmTool
           },
 
           :skip_boring => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => '-s',
               :arg_long   => '--skip-boring-files',
@@ -57,7 +57,7 @@ module MmTool
           },
 
           :verbose => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => '-v',
               :arg_long   => '--verbose',
@@ -69,7 +69,7 @@ module MmTool
           },
 
           :version => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => nil,
               :arg_long   => '--version',
@@ -81,7 +81,7 @@ module MmTool
           },
 
           :xml => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => '-x',
               :arg_long   => '--xml',
@@ -94,7 +94,7 @@ module MmTool
           },
 
           :stop_processing => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => nil,
               :arg_long   => '--',
@@ -221,7 +221,7 @@ module MmTool
           #----------------------------
 
           :transcode => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => '-t',
               :arg_long   => '--transcode',
@@ -235,7 +235,7 @@ module MmTool
           },
 
           :drop_subs => {
-              :default    => FalseClass,
+              :default    => false,
               :value      => nil,
               :arg_short  => '-d',
               :arg_long   => '--drop-subs',
@@ -275,7 +275,7 @@ module MmTool
           },
 
           :fix_undefined_language => {
-              :default    => TrueClass,
+              :default    => true,
               :value      => nil,
               :arg_short  => '-u',
               :arg_long   => '--no-fix-undefined-language',
@@ -291,7 +291,7 @@ module MmTool
           #----------------------------
 
           :quality_reports => {
-              :default    => TrueClass,
+              :default    => true,
               :value      => nil,
               :arg_short  => '-w',
               :arg_long   => '--no-quality-reports',
@@ -331,17 +331,17 @@ module MmTool
     end # initialize
 
 
-    #======================================================
-    # property options
-    #======================================================
+    #------------------------------------------------------------
+    # Property accessor
+    #------------------------------------------------------------
     def options
       @options
     end
 
 
-    #======================================================
+    #------------------------------------------------------------
     # Get the value of a setting by key.
-    #======================================================
+    #------------------------------------------------------------
     def [](key)
       if @options.key?(key)
         @options[key][:value] ? @options[key][:value] : @options[key][:default]
@@ -351,9 +351,9 @@ module MmTool
     end
 
 
-    #======================================================
+    #------------------------------------------------------------
     # Set the value of a setting by key.
-    #======================================================
+    #------------------------------------------------------------
     def []=(key, val)
       if @options.key?(key)
         @options[key][:value] = val
@@ -363,14 +363,21 @@ module MmTool
     end
 
 
-    #======================================================
+    #------------------------------------------------------------
     # Singleton accessor.
-    #======================================================
+    #------------------------------------------------------------
     def self.sharedApplication
       unless @self
         @self = self.new
       end
       @self
+    end
+
+    #------------------------------------------------------------
+    # Run the application with the given file/directory.
+    #------------------------------------------------------------
+    def run(file_or_dir)
+      puts "FILE OR DIR: #{file_or_dir}"
     end
 
   end # class ApplicationMain
