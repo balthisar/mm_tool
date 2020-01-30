@@ -1,9 +1,8 @@
-################################################################################
+#=============================================================================
 # MmToolConsoleOutputHelpers
 #  Private, self-contained methods that we will use that help in providing
 #  legible output on the command line.
-################################################################################
-
+#=============================================================================
 module MmToolConsoleOutputHelpers
 
   require 'pastel'
@@ -21,7 +20,6 @@ module MmToolConsoleOutputHelpers
     @@pastel
   end
 
-
   #------------------------------------------------------------
   # Return an array of argument groups for the given
   # application.
@@ -31,7 +29,6 @@ module MmToolConsoleOutputHelpers
         .collect { |i| i[:help_group] }
         .uniq
   end
-
 
   #------------------------------------------------------------
   # Given an argument value, return it in a format suitable
@@ -46,7 +43,6 @@ module MmToolConsoleOutputHelpers
       value
     end
   end
-
 
   #------------------------------------------------------------
   # Given an application's argument, format the argument for
@@ -65,7 +61,6 @@ module MmToolConsoleOutputHelpers
     end
   end
 
-
   #------------------------------------------------------------
   # Find the length of the longest argument label, including
   # all desired padding, for the provided application.
@@ -75,7 +70,6 @@ module MmToolConsoleOutputHelpers
         .collect { |i| format_argument(i).length }
         .max
   end
-
 
   #------------------------------------------------------------
   # Return a string: with a hanging indent of hang: and a
@@ -129,7 +123,6 @@ module MmToolConsoleOutputHelpers
 
     result.join[0...-1]
   end
-
 
   #------------------------------------------------------------
   # Displays an error message and returns from subroutine.

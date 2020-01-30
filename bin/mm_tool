@@ -1,15 +1,10 @@
 #!/usr/bin/env ruby
 
-################################################################################
-# MmToolCli
-#  This file constitutes the command line interface for mm_tool.
-###############################################################################
-
-require 'fileutils'
 require_relative '../lib/mm_tool'
 
-
 module MmTool
+
+  require 'fileutils'
 
   #=============================================================================
   # The MmToolCli class implements the command line interface for
@@ -22,10 +17,9 @@ module MmTool
     #------------------------------------------------------------
     # Designated initializer.
     #------------------------------------------------------------
-    def initialize(app_instance = MmTool::ApplicationMain.sharedApplication)
+    def initialize(app_instance = MmTool::ApplicationMain.shared_application)
       @app    = app_instance
     end
-
 
     #------------------------------------------------------------
     # Property accessor
@@ -33,7 +27,6 @@ module MmTool
     def app
       @app
     end
-
 
     #------------------------------------------------------------
     # Print Help
@@ -48,7 +41,7 @@ module MmTool
       header = <<~HEREDOC
         #{c.bold('Usage:')} #{File.basename($0)} [options...] <directory|file> [options...] <directory|file> ...
         
-        Peforms media analysis and reports on files that don't meet quality requirements and/or files that
+        Performs media analysis and reports on files that don't meet quality requirements and/or files that
         have containers and/or streams of undesired types. Files with undesired containers and/or streams
         can optionally be transcoded into a new file.
         
@@ -77,19 +70,13 @@ module MmTool
       end # each group
     end # print_help
 
-
     #------------------------------------------------------------
     # Validate pre-requisites.
     #------------------------------------------------------------
     def validate_prerequisites
-
       item_list = %w(ffmpeg xmllint)
-
       item_list = %w(libx264 libx265 libfdk_aac)
-
-
     end
-
 
     #------------------------------------------------------------
     # Run the CLI.
@@ -148,12 +135,10 @@ module MmTool
           next
         end
 
-
         # The main loop processes options, commands, and files in first-in,
         # first out order, which is the normal Unix way compared to how
         # Ruby scripts try to handle things.
         case args[0]
-
 
         #-----------------------
         # Main Options
@@ -300,7 +285,6 @@ module MmTool
 
     end # run_cli
 
-
     #------------------------------------------------------------
     # Perform a really simple validation of the given value for
     # the given argument, returning the value if successful.
@@ -312,8 +296,7 @@ module MmTool
         print_error_and_exit("Error: option #{c.bold(arg)} was specified, but the value #{c.bold(value)} looks like another option argument.")
       end
       value
-    end
-
+    end # validate_arg_value
 
   end # class MmToolCli
 end # module MmToolCliModule
@@ -323,5 +306,5 @@ end # module MmToolCliModule
 # Main
 ###########################################################
 
-cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.sharedApplication)
+cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.shared_application)
 cli.run(ARGV)

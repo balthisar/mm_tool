@@ -1,12 +1,11 @@
-################################################################################
-# MmTool
-#  The main application performs all of the work.
-################################################################################
-
 module MmTool
 
+  #=============================================================================
+  # The main application.
+  #=============================================================================
   class ApplicationMain
 
+    require 'streamio-ffmpeg'
     require "mm_tool/mm_tool_console_output_helpers"
     include MmToolConsoleOutputHelpers
 
@@ -368,7 +367,7 @@ module MmTool
     #------------------------------------------------------------
     # Singleton accessor.
     #------------------------------------------------------------
-    def self.sharedApplication
+    def self.shared_application
       unless @self
         @self = self.new
       end
@@ -380,6 +379,8 @@ module MmTool
     #------------------------------------------------------------
     def run(file_or_dir)
       puts "FILE OR DIR: #{file_or_dir}"
+      movie = FFMPEG::Movie.new(file_or_dir)
+      pp movie
     end
 
   end # class ApplicationMain
