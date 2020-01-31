@@ -44,6 +44,18 @@ module MmTool
               HEREDOC
           },
 
+          :info_header => {
+              :default    => true,
+              :value      => nil,
+              :arg_short  => '-i',
+              :arg_long   => '--no-info-header',
+              :arg_format => nil,
+              :help_group => 'Main Options',
+              :help_desc  => <<~HEREDOC
+                Don't show the information header indicating much of the configuration at the beginning of the output.
+              HEREDOC
+          },
+
           :skip_boring => {
               :default    => false,
               :value      => nil,
@@ -125,7 +137,7 @@ module MmTool
               HEREDOC
           },
 
-          :codec_audio_preferred => {
+          :codecs_audio_preferred => {
               :default    => %w(aac ac3 eac3),
               :value      => nil,
               :arg_short  => nil,
@@ -140,7 +152,7 @@ module MmTool
               HEREDOC
           },
 
-          :codec_video_preferred => {
+          :codecs_video_preferred => {
               :default    => %w(hevc h265 h264),
               :value      => nil,
               :arg_short  => nil,
@@ -155,7 +167,7 @@ module MmTool
               HEREDOC
           },
 
-          :codec_subs_preferred => {
+          :codecs_subs_preferred => {
               :default    => %w(subrip mov_text),
               :value      => nil,
               :arg_short  => nil,
@@ -331,14 +343,12 @@ module MmTool
       }
     end # initialize
 
-
     #------------------------------------------------------------
     # Property accessor
     #------------------------------------------------------------
     def options
       @options
     end
-
 
     #------------------------------------------------------------
     # Get the value of a setting by key.
@@ -351,7 +361,6 @@ module MmTool
       end
     end
 
-
     #------------------------------------------------------------
     # Set the value of a setting by key.
     #------------------------------------------------------------
@@ -363,7 +372,6 @@ module MmTool
       end
     end
 
-
     #------------------------------------------------------------
     # Singleton accessor.
     #------------------------------------------------------------
@@ -374,13 +382,80 @@ module MmTool
       @self
     end
 
+    def output(message)
+      puts message
+    end
+
+
+    #------------------------------------------------------------
+    # Return the report header.
+    #------------------------------------------------------------
+    def information_header
+      <<~HEREDOC
+#{c.bold('Looking for file(s) and processing them with the following options:')}
+           Media Filetypes: #{self[:container_files].join(',')}
+            Verbose Output: #{self[:verbose].human}
+                   Raw XML: #{self[:xml].human}
+      Preferred Containers: #{self[:containers_preferred].join(',')}
+    Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
+    Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
+ Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
+      Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
+      Keep Video Languages: #{self[:keep_langs_audio].join(',')}
+   Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
+       Transcode if Needed: #{self[:transcode].human}
+        Drop all Subtitles: #{self[:drop_subs].human}
+      Original File Suffix: #{self[:suffix]}
+     Undefined Language is: #{self[:undefined_language]} 
+    Fix Undefined Language: #{self[:fix_undefined_language].human}
+  Show Low Quality Reports: #{self[:quality_reports].human}
+       Minimum Video Width: #{self[:min_width]}
+    Minimum Audio Channels: #{self[:min_channels]}
+      HEREDOC
+    end
+
+
+    #------------------------------------------------------------
+    # The main run loop, to be run for each file.
+    #------------------------------------------------------------
+    def run_loop(file_name)
+      output file_name
+    end
+
+
     #------------------------------------------------------------
     # Run the application with the given file/directory.
     #------------------------------------------------------------
     def run(file_or_dir)
-      puts "FILE OR DIR: #{file_or_dir}"
-      movie = FFMPEG::Movie.new(file_or_dir)
-      pp movie
+
+      if self[:info_header]
+        output information_header
+      end
+
+      if File.file?(file_or_dir)
+
+        verbose = self[:verbose]
+        self[:verbose] = true
+        run_loop(file_or_dir)
+        self[:verbose] = verbose
+
+      elsif File.directory?(file_or_dir)
+
+        extensions = self[:container_files].join(',')
+        Dir.chdir(file_or_dir) do
+          Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort.each do |file|
+            puts file
+          end
+        end
+
+      else
+        output "Error: Execution should never have reached this point."
+        exit 1
+      end
+
+      # puts "FILE OR DIR: #{file_or_dir}"
+      # movie = FFMPEG::Movie.new(file_or_dir)
+      # pp movie
     end
 
   end # class ApplicationMain

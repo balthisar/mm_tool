@@ -140,4 +140,33 @@ module MmToolConsoleOutputHelpers
     exit 1
   end
 
+  #------------------------------------------------------------
+  # Output bool as YES/NO/NOTHING
+  # ------------------------------------------------------------
+  class ::TrueClass
+    def human
+      "YES"
+    end
+  end
+
+  #------------------------------------------------------------
+  # Output bool as YES/NO/NOTHING
+  # ------------------------------------------------------------
+  class ::FalseClass
+    def human
+      "NO"
+    end
+  end
+
+  #------------------------------------------------------------
+  # Output bool as YES/NO/NOTHING
+  # ------------------------------------------------------------
+  class ::NilClass
+    def human
+      "NOTHING"
+    end
+  end
+
+
+
 end # module MmToolConsoleOutputHelpers

@@ -4,7 +4,7 @@ require_relative '../lib/mm_tool'
 
 module MmTool
 
-  require 'fileutils'
+  require 'tty-command'
 
   #=============================================================================
   # The MmToolCli class implements the command line interface for
@@ -74,8 +74,32 @@ module MmTool
     # Validate pre-requisites.
     #------------------------------------------------------------
     def validate_prerequisites
-      item_list = %w(ffmpeg xmllint)
-      item_list = %w(libx264 libx265 libfdk_aac)
+      commands = %w(ffmpeg)
+      codecs   = %w(libx264 libx265 libfdk_aac)
+      task     = TTY::Command.new(printer: :null)
+      success  = true
+
+      # We'll check everything in items before failing, so that we can provide
+      # a comprehensive list to the user. No one wants to see what's missing
+      # on-by-one.
+      commands.each do |command|
+        result = task.run!(:command, '-v', command)
+        print_error("Error: #{c.bold(command)} is not installed (or not in your #{c.bold('$PATH')}).") if result.failure?
+        success = success && result.success?
+      end
+      exit 1 unless success
+
+      # Now we'll make sure that all of the codecs that we're interested in
+      # are installed as part of ffmpeg. This is necessary because not every
+      # binary distribution supports non-free.
+
+      # Again, we'll check them all before failing in order to list everything.
+      codecs.each do |codec|
+        result = task.run!("ffprobe -v quiet -codecs | grep #{codec}")
+        print_error("Error: ffmpeg was built without support for the #{c.bold(codec)} codec, which is required.") if result.failure?
+        success = success && result.success?
+      end
+      exit 1 unless success
     end
 
     #------------------------------------------------------------
@@ -101,6 +125,10 @@ module MmTool
               args.insert(1, "--drop-subs")
             when "D"
               args.insert(1, "--no-drop-subs")
+            when 'i'
+              args.insert(1, "--no-info-header")
+            when 'I'
+              args.insert(1, '--info-header')
             when "s"
               args.insert(1, "--skip-boring-files")
             when "S"
@@ -152,6 +180,12 @@ module MmTool
           app[:container_files] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
+        when '--no-info-header'
+          app[:info_header] = false
+
+        when '--info-header'
+          app[:info_header] = true
+
         when '--skip-boring-files'
           app[:skip_boring] = true
 
@@ -184,15 +218,15 @@ module MmTool
           app[:containers_preferred] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
-        when '--codec-audio-preferred'
+        when '--codecs-audio-preferred'
           app[:codec_audio_preferred] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
-        when '--codec-video-preferred'
+        when '--codecs-video-preferred'
           app[:codec_video_preferred] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
-        when '--codec-subs-preferred'
+        when '--codecs-subs-preferred'
           app[:codec_subs_preferred] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
@@ -307,4 +341,5 @@ end # module MmToolCliModule
 ###########################################################
 
 cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.shared_application)
+cli.validate_prerequisites
 cli.run(ARGV)
