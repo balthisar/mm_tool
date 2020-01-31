@@ -253,6 +253,7 @@ module MmTool
 
         when '--no-transcode'
           app[:transcode] = false
+          app.tempfile = nil
 
         when '--drop-subs'
           app[:drop_subs] = true

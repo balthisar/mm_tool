@@ -13,7 +13,7 @@ module MmTool
     #------------------------------------------------------------
     # Attributes
     #------------------------------------------------------------
-    attr_accessor :name
+    attr_accessor :tempfile
     attr_accessor :options
 
     #------------------------------------------------------------
@@ -248,9 +248,9 @@ module MmTool
               :arg_format => nil,
               :help_group => 'Transcoding Options',
               :help_desc  => <<~HEREDOC
-                Perform transcoding if necessary. Containers and streams that are not in preferred formats will be
+                Write transcoding instructions. Containers and streams that are not in preferred formats will be
                 transcoded; streams that are not in the preferred language will be dropped, unless they are the
-                only video or only audio stream.
+                only video or only audio stream. Transcoding instructions will be written to a random file.
               HEREDOC
           },
 
@@ -424,6 +424,7 @@ module MmTool
               Keep Video Languages: #{self[:keep_langs_audio].join(',')}
            Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
                Transcode if Needed: #{self[:transcode].human}
+           Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
                 Drop all Subtitles: #{self[:drop_subs].human}
               Original File Suffix: #{self[:suffix]}
              Undefined Language is: #{self[:undefined_language]} 
@@ -440,6 +441,14 @@ module MmTool
     #------------------------------------------------------------
     def run_loop(file_name)
       output file_name
+      movie = FFMPEG::Movie.new(file_name)
+      table = TTY::Table.new(header: %w(index codec type))
+      movie.metadata[:streams].each do |stream|
+        table << [stream[:index], stream[:codec_name], stream[:codec_type]]
+      end
+      renderer = TTY::Table::Renderer::Unicode.new(table)
+      my_string = renderer.render
+      puts my_string
     end
 
 
@@ -447,6 +456,9 @@ module MmTool
     # Run the application with the given file/directory.
     #------------------------------------------------------------
     def run(file_or_dir)
+      if self[:transcode]
+        self.tempfile = Tempfile.new('mm_tool-')
+      end
 
       if self[:info_header]
         output information_header
@@ -464,7 +476,7 @@ module MmTool
         extensions = self[:container_files].join(',')
         Dir.chdir(file_or_dir) do
           Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort.each do |file|
-            puts file
+            run_loop(file)
           end
         end
 
@@ -473,10 +485,12 @@ module MmTool
         exit 1
       end
 
-      # puts "FILE OR DIR: #{file_or_dir}"
-      # movie = FFMPEG::Movie.new(file_or_dir)
-      # pp movie
-    end
+    ensure
+      if self.tempfile
+        self.tempfile.unlink
+      end
+
+    end # run
 
   end # class ApplicationMain
 
