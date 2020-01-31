@@ -6,8 +6,15 @@ module MmTool
   class ApplicationMain
 
     require 'streamio-ffmpeg'
+    require 'tty-table'
     require "mm_tool/mm_tool_console_output_helpers"
     include MmToolConsoleOutputHelpers
+
+    #------------------------------------------------------------
+    # Attributes
+    #------------------------------------------------------------
+    attr_accessor :name
+    attr_accessor :options
 
     #------------------------------------------------------------
     # Define and setup module level variables.
@@ -344,13 +351,6 @@ module MmTool
     end # initialize
 
     #------------------------------------------------------------
-    # Property accessor
-    #------------------------------------------------------------
-    def options
-      @options
-    end
-
-    #------------------------------------------------------------
     # Get the value of a setting by key.
     #------------------------------------------------------------
     def [](key)
@@ -382,35 +382,55 @@ module MmTool
       @self
     end
 
+    #------------------------------------------------------------
+    # Output a message to the screen, and if applicable, to
+    # the temporary file for later opening.
+    #------------------------------------------------------------
     def output(message)
       puts message
     end
 
+    #------------------------------------------------------------
+    # Return the transcode file header.
+    #------------------------------------------------------------
+    def transcode_script_header
+      <<~HEREDOC
+        #!/bin/sh
+
+        # Check this file, make any changes, and save it. It will be executed as soon
+        # as you close it. By default, this script will exit per the exit command
+        # below. Please further confirm that you wish to proceed with the proposed
+        # actions by commenting or removing the line below.
+        
+        exit 1
+
+      HEREDOC
+    end
 
     #------------------------------------------------------------
     # Return the report header.
     #------------------------------------------------------------
     def information_header
       <<~HEREDOC
-#{c.bold('Looking for file(s) and processing them with the following options:')}
-           Media Filetypes: #{self[:container_files].join(',')}
-            Verbose Output: #{self[:verbose].human}
-                   Raw XML: #{self[:xml].human}
-      Preferred Containers: #{self[:containers_preferred].join(',')}
-    Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
-    Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
- Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
-      Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
-      Keep Video Languages: #{self[:keep_langs_audio].join(',')}
-   Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
-       Transcode if Needed: #{self[:transcode].human}
-        Drop all Subtitles: #{self[:drop_subs].human}
-      Original File Suffix: #{self[:suffix]}
-     Undefined Language is: #{self[:undefined_language]} 
-    Fix Undefined Language: #{self[:fix_undefined_language].human}
-  Show Low Quality Reports: #{self[:quality_reports].human}
-       Minimum Video Width: #{self[:min_width]}
-    Minimum Audio Channels: #{self[:min_channels]}
+        #{c.bold('Looking for file(s) and processing them with the following options:')}
+                   Media Filetypes: #{self[:container_files].join(',')}
+                    Verbose Output: #{self[:verbose].human}
+                           Raw XML: #{self[:xml].human}
+              Preferred Containers: #{self[:containers_preferred].join(',')}
+            Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
+            Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
+         Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
+              Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
+              Keep Video Languages: #{self[:keep_langs_audio].join(',')}
+           Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
+               Transcode if Needed: #{self[:transcode].human}
+                Drop all Subtitles: #{self[:drop_subs].human}
+              Original File Suffix: #{self[:suffix]}
+             Undefined Language is: #{self[:undefined_language]} 
+            Fix Undefined Language: #{self[:fix_undefined_language].human}
+          Show Low Quality Reports: #{self[:quality_reports].human}
+               Minimum Video Width: #{self[:min_width]}
+            Minimum Audio Channels: #{self[:min_channels]}
       HEREDOC
     end
 

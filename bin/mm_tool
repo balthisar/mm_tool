@@ -5,6 +5,7 @@ require_relative '../lib/mm_tool'
 module MmTool
 
   require 'tty-command'
+  require 'tty-which'
 
   #=============================================================================
   # The MmToolCli class implements the command line interface for
@@ -83,9 +84,10 @@ module MmTool
       # a comprehensive list to the user. No one wants to see what's missing
       # on-by-one.
       commands.each do |command|
-        result = task.run!(:command, '-v', command)
-        print_error("Error: #{c.bold(command)} is not installed (or not in your #{c.bold('$PATH')}).") if result.failure?
-        success = success && result.success?
+        unless TTY::Which.exist?(command)
+          print_error("Error: #{c.bold(command)} is not installed (or not in your #{c.bold('$PATH')}).")
+          success = no
+        end
       end
       exit 1 unless success
 
