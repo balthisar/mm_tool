@@ -121,40 +121,40 @@ module MmTool
 
             case char
 
-            when "h"
+            when 'h'
               args.insert(1, "--help")
-            when "d"
+            when 'd'
               args.insert(1, "--drop-subs")
-            when "D"
+            when 'D'
               args.insert(1, "--no-drop-subs")
             when 'i'
               args.insert(1, "--no-info-header")
             when 'I'
               args.insert(1, '--info-header')
-            when "s"
+            when 's'
               args.insert(1, "--skip-boring-files")
-            when "S"
+            when 'S'
               args.insert(1, "--no-skip-boring-files")
-            when "t"
+            when 't'
               args.insert(1, "--transcode")
-            when "T"
+            when 'T'
               args.insert(1, "--no-transcode")
-            when "u"
+            when 'u'
               args.insert(1, "--no-fix-undefined-language")
-            when "U"
+            when 'U'
               args.insert(1, "--fix-undefined-language")
-            when "v"
+            when 'v'
               args.insert(1, "--verbose")
-            when "V"
+            when 'V'
               args.insert(1, "--no-verbose")
-            when "w"
+            when 'w'
               args.insert(1, "--no-quality-reports ")
-            when "W"
+            when 'W'
               args.insert(1, "--quality-reports ")
-            when "x"
-              args.insert(1, "--xml")
-            when "X"
-              args.insert(1, "--no-xml")
+            when 'p'
+              args.insert(1, "--dump")
+            when 'P'
+              args.insert(1, "--no-dump")
             else
               print_error_and_exit("Error: option #{c.bold(args[0])} was specified, but I don't know what that means.")
             end
@@ -203,11 +203,11 @@ module MmTool
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"
 
-        when '--xml'
-          app[:xml] = true
+        when '--dump'
+          app[:dump] = true
 
-        when '--no-xml'
-          app[:xml] = false
+        when '--no-dump'
+          app[:dump] = false
 
         when '--'
           break

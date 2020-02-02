@@ -5,9 +5,8 @@ module MmTool
   #=============================================================================
   class ApplicationMain
 
-    require 'streamio-ffmpeg'
-    require 'tty-table'
     require "mm_tool/mm_tool_console_output_helpers"
+    require "mm_tool/mm_movie"
     include MmToolConsoleOutputHelpers
 
     #------------------------------------------------------------
@@ -100,15 +99,15 @@ module MmTool
               HEREDOC
           },
 
-          :xml => {
+          :dump => {
               :default    => false,
               :value      => nil,
-              :arg_short  => '-x',
-              :arg_long   => '--xml',
+              :arg_short  => '-p',
+              :arg_long   => '--dump',
               :arg_format => nil,
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                Show the raw XML information for the media file instead of the summary table. This implies
+                Show the raw file information for the media file instead of the summary table. This implies
                 #{c.bold('--no-transcode')}.
               HEREDOC
           },
@@ -412,43 +411,44 @@ module MmTool
     #------------------------------------------------------------
     def information_header
       <<~HEREDOC
-        #{c.bold('Looking for file(s) and processing them with the following options:')}
-                   Media Filetypes: #{self[:container_files].join(',')}
-                    Verbose Output: #{self[:verbose].human}
-                           Raw XML: #{self[:xml].human}
-              Preferred Containers: #{self[:containers_preferred].join(',')}
-            Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
-            Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
-         Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
-              Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
-              Keep Video Languages: #{self[:keep_langs_audio].join(',')}
-           Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
-               Transcode if Needed: #{self[:transcode].human}
-           Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
-                Drop all Subtitles: #{self[:drop_subs].human}
-              Original File Suffix: #{self[:suffix]}
-             Undefined Language is: #{self[:undefined_language]} 
-            Fix Undefined Language: #{self[:fix_undefined_language].human}
-          Show Low Quality Reports: #{self[:quality_reports].human}
-               Minimum Video Width: #{self[:min_width]}
-            Minimum Audio Channels: #{self[:min_channels]}
+                #{c.bold('Looking for file(s) and processing them with the following options:')}
+                           Media Filetypes: #{self[:container_files].join(',')}
+                            Verbose Output: #{self[:verbose].human}
+                                  Raw Dump: #{self[:dump].human}
+                      Preferred Containers: #{self[:containers_preferred].join(',')}
+                    Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
+                    Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
+                 Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
+                      Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
+                      Keep Video Languages: #{self[:keep_langs_audio].join(',')}
+                   Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
+                       Transcode if Needed: #{self[:transcode].human}
+                   Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
+                        Drop all Subtitles: #{self[:drop_subs].human}
+                      Original File Suffix: #{self[:suffix]}
+                     Undefined Language is: #{self[:undefined_language]} 
+                    Fix Undefined Language: #{self[:fix_undefined_language].human}
+                  Show Low Quality Reports: #{self[:quality_reports].human}
+                       Minimum Video Width: #{self[:min_width]}
+                    Minimum Audio Channels: #{self[:min_channels]}
+        #{hanging_string(string: '               Disposition Columns: ' + MmMovie.dispositions.join(', '), hang: 36, margin: TTY::Screen.width - 1) }
       HEREDOC
     end
-
 
     #------------------------------------------------------------
     # The main run loop, to be run for each file.
     #------------------------------------------------------------
     def run_loop(file_name)
-      output file_name
-      movie = FFMPEG::Movie.new(file_name)
-      table = TTY::Table.new(header: %w(index codec type))
-      movie.metadata[:streams].each do |stream|
-        table << [stream[:index], stream[:codec_name], stream[:codec_type]]
+      movie = MmMovie.new(with_file: file_name)
+      output movie.movie_file
+      output movie.format_title
+      output movie.format_duration
+      output movie.format_size
+      if self[:dump]
+        pp(movie.ff_movie)
+      else
+        output(movie.table_text)
       end
-      renderer = TTY::Table::Renderer::Unicode.new(table)
-      my_string = renderer.render
-      puts my_string
     end
 
 
@@ -456,6 +456,7 @@ module MmTool
     # Run the application with the given file/directory.
     #------------------------------------------------------------
     def run(file_or_dir)
+
       if self[:transcode]
         self.tempfile = Tempfile.new('mm_tool-')
       end

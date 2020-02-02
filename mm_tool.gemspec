@@ -41,6 +41,7 @@ Gem::Specification.new do |spec|
   # Additional dependencies
   spec.add_runtime_dependency 'tty'
   spec.add_runtime_dependency 'streamio-ffmpeg'
+  spec.add_runtime_dependency 'bytesize'
 
   # Development dependencies
   spec.add_development_dependency "bundler", "~> 1.17"
