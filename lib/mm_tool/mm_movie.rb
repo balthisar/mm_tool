@@ -1,10 +1,14 @@
 module MmTool
 
   #=============================================================================
-  # A movie as a self contained class.
+  # A movie as a self contained class. Instances of this class consist of
+  # one or more MmMovieStream instances, and contains intelligence about itself
+  # so that it can provide commands to ffmpeg and/or mkvpropedit as required.
+  # Upon creation it must be provided with a filename and an options hash.
   #=============================================================================
   class MmMovie
 
+    require 'mm_tool/mm_movie_stream'
     require 'streamio-ffmpeg'
     require 'tty-screen'
     require 'tty-table'
@@ -12,58 +16,67 @@ module MmTool
     require 'bytesize'
 
     #------------------------------------------------------------
-    # Class Attributes
+    # This class method returns the known dispositions supported
+    # by ffmpeg. This array also reflects the output orders in
+    # the dispositions table field. Not combining them would
+    # result in a too-long table row.
     #------------------------------------------------------------
-    class << self
-      attr_reader :dispositions
+    def self.dispositions
+      %i(default dub original comment lyrics karaoke forced hearing_impaired visual_impaired clean_effects attached_pic timed_thumbnails)
     end
-    @dispositions = %i(default dub original comment lyrics karaoke forced hearing_impaired visual_impaired clean_effects attached_pic timed_thumbnails)
 
     #------------------------------------------------------------
     # Attributes
     #------------------------------------------------------------
-    attr_reader :ff_movie
-    attr_reader :movie_file
-    attr_reader :table
+    attr_reader :ff_movie            # Exposed instance of the FFMPEG::Movie
+    attr_reader :path                # Path to the on-disk file this instance represents.
+    attr_reader :table               # A TTY:Table consisting of each streams' information.
     attr_reader :table_text
     attr_reader :table_text_plain
 
     #------------------------------------------------------------
     # Define and setup module level variables.
     #------------------------------------------------------------
-    def initialize(with_file:)
+    def initialize(with_file:, options:)
       @c = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
-      @movie_file = with_file
+
+      @path = with_file
+      @options = options
+
       @ff_movie = FFMPEG::Movie.new(with_file)
+      @streams = MmMovieStream::streams(from_movie: self)
+
       @table = build_table_for_movie
       @table_text = render_table(true)
       @table_text_plain = render_table(false)
     end
 
 
+    #------------------------------------------------------------
+    # Get the file-level 'title' metadata.
+    #------------------------------------------------------------
     def format_title
       @ff_movie&.metadata&.dig(:format, :tags, :title)
     end
 
+    #------------------------------------------------------------
+    # Get the file-level 'duration' metadata.
+    #------------------------------------------------------------
     def format_duration
       seconds = @ff_movie&.metadata&.dig(:format, :duration)
       seconds ? Time.at(seconds.to_i).utc.strftime("%H:%M:%S") : nil
     end
 
+    #------------------------------------------------------------
+    # Get the file-level 'size' metadata.
+    #------------------------------------------------------------
     def format_size
       size = @ff_movie&.metadata&.dig(:format, :size)
       size ? ByteSize.new(size) : 'unknown'
     end
 
+
     private
-
-
-    #------------------------------------------------------------
-    # Easy access to the pastel instance for coloring.
-    #------------------------------------------------------------
-    def c
-      @c
-    end
 
     #------------------------------------------------------------
     # Return a TTY::Table of the movie, populated with the
@@ -92,10 +105,10 @@ module MmTool
         if stream.key?(:tags)
           lang = stream[:tags][:language]
           lang = stream[:tags][:LANGUAGE] unless lang
-          lang = c.cyan('und') unless lang
+          lang = @c.cyan('und') unless lang
           title = stream[:tags][:title]
         else
-          lang = c.cyan('und')
+          lang = @c.cyan('und')
           title = ''
         end
 
@@ -137,13 +150,13 @@ module MmTool
           renderer.border.style = :bright_black
           renderer.filter = -> (val, row, col) do
             if row == 0
-              c.italic(val)
+              @c.italic(val)
             else
               val
             end
           end # do
         else
-          renderer.filter = -> (val, row, col) { c.strip(val) }
+          renderer.filter = -> (val, row, col) { @c.strip(val) }
         end # if colorize
       end # do
     end

@@ -439,8 +439,8 @@ module MmTool
     # The main run loop, to be run for each file.
     #------------------------------------------------------------
     def run_loop(file_name)
-      movie = MmMovie.new(with_file: file_name)
-      output movie.movie_file
+      movie = MmMovie.new(with_file: file_name, options:options)
+      output movie.path
       output movie.format_title
       output movie.format_duration
       output movie.format_size
