@@ -28,9 +28,11 @@ module MmTool
     #------------------------------------------------------------
     # Attributes
     #------------------------------------------------------------
-    attr_reader :ff_movie            # Exposed instance of the FFMPEG::Movie
     attr_reader :path                # Path to the on-disk file this instance represents.
-    attr_reader :table               # A TTY:Table consisting of each streams' information.
+    attr_writer :options             # Exposed options hash.
+    attr_reader :ff_movie            # Exposed instance of the FFMPEG::Movie
+    attr_reader :streams             # Exposed array of MmMovieStream.
+
     attr_reader :table_text
     attr_reader :table_text_plain
 
@@ -46,7 +48,6 @@ module MmTool
       @ff_movie = FFMPEG::Movie.new(with_file)
       @streams = MmMovieStream::streams(from_movie: self)
 
-      @table = build_table_for_movie
       @table_text = render_table(true)
       @table_text_plain = render_table(false)
     end
@@ -75,54 +76,38 @@ module MmTool
       size ? ByteSize.new(size) : 'unknown'
     end
 
-
-    private
-
     #------------------------------------------------------------
     # Return a TTY::Table of the movie, populated with the
     # pertinent data of each stream.
     #------------------------------------------------------------
-    def build_table_for_movie
+    def table
+      unless @table
+        # Ensure that when we add the headers, they specifically are left-aligned.
+        headers = %w(index codec type w/# h/layout lang disposition title action(s))
+                      .map { |header| {:value => header, :alignment => :left} }
 
-      # Ensure that when we add the headers, they specifically are left-aligned.
-      headers = %w(index codec type w/# h/layout lang disposition title action(s))
-                    .map { |header| {:value => header, :alignment => :left} }
+        @table = TTY::Table.new(header: headers)
 
-      table = TTY::Table.new(header: headers)
-
-      @ff_movie.metadata[:streams].each do |stream|
-        w_col = stream[:coded_width]
-        h_col = stream[:coded_height]
-
-        if stream[:codec_type] == 'audio'
-          w_col = stream[:channels]
-          h_col = stream[:channel_layout]
-        elsif stream[:codec_type] == 'subtitle'
-          w_col = 'n/a'
-          h_col = 'n/a'
+        @streams.each do |stream|
+          row = []
+          row << stream.index
+          row << stream.codec_name
+          row << stream.codec_type
+          row << stream.quality_01
+          row << stream.quality_02
+          row << stream.language
+          row << stream.dispositions
+          row << stream.title
+          row << 'some action'
+          @table << row
         end
-
-        if stream.key?(:tags)
-          lang = stream[:tags][:language]
-          lang = stream[:tags][:LANGUAGE] unless lang
-          lang = @c.cyan('und') unless lang
-          title = stream[:tags][:title]
-        else
-          lang = @c.cyan('und')
-          title = ''
-        end
-
-        row = [stream[:index], stream[:codec_name], stream[:codec_type], w_col, h_col, lang]
-        row << self.class.dispositions
-                   .collect {|symbol| stream[:disposition][symbol]}
-                   .join(',')
-        row << title
-        row << ''
-
-        table << row
       end
-      table
-    end # build_table_for_movie
+      @table
+    end # table
+
+
+    private
+
 
     #------------------------------------------------------------
     # For the given table, get the rendered text of the table
@@ -140,7 +125,7 @@ module MmTool
         columns[7] = 80
       end
 
-      @table.render(:unicode) do |renderer|
+      table.render(:unicode) do |renderer|
         renderer.alignments    = [:center, :left, :left, :right, :right, :left, :left, :left, :center]
         renderer.column_widths = columns
         renderer.multiline     = true

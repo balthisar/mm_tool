@@ -441,13 +441,14 @@ module MmTool
     def run_loop(file_name)
       movie = MmMovie.new(with_file: file_name, options:options)
       output movie.path
-      output movie.format_title
-      output movie.format_duration
-      output movie.format_size
+      output "   Title: #{movie.format_title}"
+      output "Duration: #{movie.format_duration}"
+      output "    Size: #{movie.format_size}"
       if self[:dump]
         pp(movie.ff_movie)
       else
         output(movie.table_text)
+        puts "\n\n"
       end
     end
 

@@ -85,9 +85,13 @@ module MmTool
     # Property
     #------------------------------------------------------------
     def language
-      lang = @data[:tags][:language]
-      lang = @data[:tags][:LANGUAGE] unless lang
-      lang = 'und' unless lang
+      if @data.key(:tags)
+        lang = @data[:tags][:language]
+        lang = @data[:tags][:LANGUAGE] unless lang
+        lang = 'und' unless lang
+      else
+        lang = 'und'
+      end
       lang
     end
 
@@ -95,7 +99,11 @@ module MmTool
     # Property
     #------------------------------------------------------------
     def title
-      @data[:tags][:title]
+      if @data.key(:tags)
+        @data[:tags][:title]
+      else
+        nil
+      end
     end
 
     #------------------------------------------------------------
@@ -115,6 +123,8 @@ module MmTool
         channels
       elsif codec_type == 'video'
         coded_width
+      else
+        nil
       end
     end
 
@@ -126,6 +136,8 @@ module MmTool
         channel_layout
       elsif codec_type == 'video'
         coded_height
+      else
+        nil
       end
     end
 
