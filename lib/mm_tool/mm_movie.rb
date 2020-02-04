@@ -106,6 +106,33 @@ module MmTool
     end # table
 
 
+    #------------------------------------------------------------
+    # The name of the proposed output file, if different from
+    # the input file. This would be set in the event that the
+    # container of the input file is not one of the approved
+    # containers.
+    #------------------------------------------------------------
+    def output_path
+
+    end
+
+    #------------------------------------------------------------
+    # The proposed, new name of the input file. This would be
+    # set in the event that the container of the input files is
+    # not one of the approved containers.
+    #------------------------------------------------------------
+    def new_input_path
+
+    end
+
+    #------------------------------------------------------------
+    # The complete, proposed ffmpeg command to transcode the
+    # input file to an output file.
+    #------------------------------------------------------------
+    def command_transcode
+
+    end
+
     private
 
 
