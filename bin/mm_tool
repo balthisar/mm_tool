@@ -123,18 +123,10 @@ module MmTool
 
             when 'h'
               args.insert(1, "--help")
-            when 'd'
-              args.insert(1, "--drop-subs")
-            when 'D'
-              args.insert(1, "--no-drop-subs")
             when 'i'
               args.insert(1, "--no-info-header")
             when 'I'
               args.insert(1, '--info-header')
-            when 's'
-              args.insert(1, "--skip-boring-files")
-            when 'S'
-              args.insert(1, "--no-skip-boring-files")
             when 't'
               args.insert(1, "--transcode")
             when 'T'
@@ -143,14 +135,6 @@ module MmTool
               args.insert(1, "--no-fix-undefined-language")
             when 'U'
               args.insert(1, "--fix-undefined-language")
-            when 'v'
-              args.insert(1, "--verbose")
-            when 'V'
-              args.insert(1, "--no-verbose")
-            when 'w'
-              args.insert(1, "--no-quality-reports ")
-            when 'W'
-              args.insert(1, "--quality-reports ")
             when 'p'
               args.insert(1, "--dump")
             when 'P'
@@ -182,23 +166,20 @@ module MmTool
           app[:container_files] = validate_arg_value(args[0], args[1]).split(',')
           args.shift
 
+        when '--scan'
+          value = validate_arg_value(args[0], args[1]).downcase
+          unless %w(normal all flagged quality).include?(value)
+            print_error("Note: value #{c.bold(value)} doesn't make sense; assuming #{c.bold('normal')}.")
+            value = 'normal'
+          end
+          app[:scan_type] = value
+          args.shift
+
         when '--no-info-header'
           app[:info_header] = false
 
         when '--info-header'
           app[:info_header] = true
-
-        when '--skip-boring-files'
-          app[:skip_boring] = true
-
-        when '--no-skip-boring-files'
-          app[:skip_boring] = false
-
-        when '--verbose'
-          app[:verbose] = true
-
-        when '--no-verbose'
-          app[:verbose] = false
 
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"
@@ -255,9 +236,6 @@ module MmTool
           app[:transcode] = false
           app.tempfile = nil
 
-        when '--drop-subs'
-          app[:drop_subs] = true
-
         when '--no-drop-subs'
           app[:drop_subs] = false
 
@@ -276,12 +254,6 @@ module MmTool
         #-----------------------
         # Quality
         #-----------------------
-
-        when '--no-quality-reports'
-          app[:quality_reports] = false
-
-        when '--quality-reports'
-          app[:quality_reports] = true
 
         when '--min-width'
           app[:min_width] = validate_arg_value(args[0], args[1])

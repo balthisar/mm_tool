@@ -50,6 +50,23 @@ module MmTool
               HEREDOC
           },
 
+          :scan_type => {
+              :default    => 'normal',
+              :value      => nil,
+              :arg_short  => nil,
+              :arg_long   => '--scan',
+              :arg_format => '<scan_type>',
+              :help_group => 'Main Options',
+              :help_desc  => <<~HEREDOC
+                Type of files for which to show result. #{c.bold('normal')} will display results of files that have
+                some change proposed to them, or have some other characteristic that merits review. #{c.bold('all')}
+                will display all media files, even if there's nothing interesting about them (however, ignore-flagged
+                files will be ignored. #{c.bold('flagged')} will show data for all ignore-flagged files.
+                #{c.bold('quality')} will show results only for files not meeting quality thresholds.
+                The default is #{c.bold('%s')}.
+              HEREDOC
+          },
+
           :info_header => {
               :default    => true,
               :value      => nil,
@@ -59,31 +76,6 @@ module MmTool
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
                 Don't show the information header indicating much of the configuration at the beginning of the output.
-              HEREDOC
-          },
-
-          :skip_boring => {
-              :default    => false,
-              :value      => nil,
-              :arg_short  => '-s',
-              :arg_long   => '--skip-boring-files',
-              :arg_format => nil,
-              :help_group => 'Main Options',
-              :help_desc  => <<~HEREDOC
-                Don't show uninteresting files in the output. Uninteresting files meet all of our requirements, and
-                can clutter up the display.
-              HEREDOC
-          },
-
-          :verbose => {
-              :default    => false,
-              :value      => nil,
-              :arg_short  => '-v',
-              :arg_long   => '--verbose',
-              :arg_format => nil,
-              :help_group => 'Main Options',
-              :help_desc  => <<~HEREDOC
-                Show media information for every file, instead of just files that trigger messages.
               HEREDOC
           },
 
@@ -253,19 +245,6 @@ module MmTool
               HEREDOC
           },
 
-          :drop_subs => {
-              :default    => false,
-              :value      => nil,
-              :arg_short  => '-d',
-              :arg_long   => '--drop-subs',
-              :arg_format => nil,
-              :help_group => 'Transcoding Options',
-              :help_desc  => <<~HEREDOC
-                When specified, this script will drop all subtitles from files in the population, regardless of
-                the language. This directive has no effect if #{c.bold('--transcode')} is not specifed.
-              HEREDOC
-          },
-
           :suffix => {
               :default    => '-original',
               :value      => nil,
@@ -308,20 +287,6 @@ module MmTool
           #----------------------------
           # Quality Options
           #----------------------------
-
-          :quality_reports => {
-              :default    => true,
-              :value      => nil,
-              :arg_short  => '-w',
-              :arg_long   => '--no-quality-reports',
-              :arg_format => nil,
-              :help_group => 'Quality Options',
-              :help_desc  => <<~HEREDOC
-                Don't report files that merely are low quality. Such files are still inspected for non-preferred
-                streams and subtitles. They simply will be skipped if the only issues are resolution and/or number of
-                audio channels.
-              HEREDOC
-          },
 
           :min_width => {
               :default    => '1920',
@@ -439,7 +404,7 @@ module MmTool
     # The main run loop, to be run for each file.
     #------------------------------------------------------------
     def run_loop(file_name)
-      movie = MmMovie.new(with_file: file_name, options:options)
+      movie = MmMovie.new(with_file: file_name, owner:self)
       output movie.path
       output "   Title: #{movie.format_title}"
       output "Duration: #{movie.format_duration}"
@@ -448,7 +413,8 @@ module MmTool
         pp(movie.ff_movie)
       else
         output(movie.table_text)
-        puts "\n\n"
+        puts movie.command_transcode
+        puts
       end
     end
 

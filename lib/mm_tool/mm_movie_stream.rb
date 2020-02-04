@@ -25,11 +25,17 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Define and setup module level variables.
+    # Attributes
+    #------------------------------------------------------------
+    attr_accessor :instruction_types # :drop, :passthrough, :transcode
+
+    #------------------------------------------------------------
+    # Define and setup instance variables.
     #------------------------------------------------------------
     def initialize(with_data:, from_movie:)
       @owner = from_movie
       @data = with_data
+      @instruction_types = []
     end
 
     #------------------------------------------------------------

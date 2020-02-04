@@ -37,13 +37,13 @@ module MmTool
     attr_reader :table_text_plain
 
     #------------------------------------------------------------
-    # Define and setup module level variables.
+    # Define and setup instance variables.
     #------------------------------------------------------------
-    def initialize(with_file:, options:)
+    def initialize(with_file:, owner:)
       @c = Pastel.new(enabled: $stdout.tty? && $stderr.tty?)
 
       @path = with_file
-      @options = options
+      @owner = owner
 
       @ff_movie = FFMPEG::Movie.new(with_file)
       @streams = MmMovieStream::streams(from_movie: self)
@@ -113,28 +113,58 @@ module MmTool
     # containers.
     #------------------------------------------------------------
     def output_path
-
+      if @owner[:containers_preferred].include?(File.extname(@path))
+        @path
+      else
+        File.join(File.dirname(@path), File.basename(@path, '.*') + '.' + @owner[:containers_preferred][0])
+      end
     end
 
     #------------------------------------------------------------
-    # The proposed, new name of the input file. This would be
-    # set in the event that the container of the input files is
-    # not one of the approved containers.
+    # The proposed, new name of the input file, if transcoding
+    # is to be performed. The transcoding script will rename
+    # the source file to this name before transcoding.
     #------------------------------------------------------------
     def new_input_path
-
+      File.join(File.dirname(@path), File.basename(@path, '.*') + @owner[:suffix] + File.extname(@path))
     end
 
     #------------------------------------------------------------
     # The complete, proposed ffmpeg command to transcode the
-    # input file to an output file.
+    # input file to an output file. It uses the 'new_input_path'
+    # as the input file.
     #------------------------------------------------------------
     def command_transcode
-
+      command = []
+      command << "ffmpeg -i \"#{new_input_path}\" \\"
+      process_streams_pass_1
+      command << "   \"#{output_path}\""
     end
 
     private
 
+    def process_streams_pass_1
+
+      @streams.each do |stream|
+
+        if stream.codec_type == 'subtitle'
+          stream.instruction_types = [:drop]
+
+        elsif stream.codec_type == 'video'
+          stream.instruction_types = [:drop]
+
+        elsif stream.codec_type == 'audio'
+          stream.instruction_types = [:drop]
+
+        else
+          stream.instruction_types = [:drop]
+        end
+
+
+
+      end
+
+    end
 
     #------------------------------------------------------------
     # For the given table, get the rendered text of the table
