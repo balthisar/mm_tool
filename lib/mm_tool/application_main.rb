@@ -434,10 +434,10 @@ module MmTool
 
       if File.file?(file_or_dir)
 
-        verbose = self[:verbose]
-        self[:verbose] = true
+        # verbose = self[:verbose]
+        # self[:verbose] = true
         run_loop(file_or_dir)
-        self[:verbose] = verbose
+        # self[:verbose] = verbose
 
       elsif File.directory?(file_or_dir)
 

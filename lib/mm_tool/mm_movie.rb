@@ -145,25 +145,128 @@ module MmTool
 
     def process_streams_pass_1
 
+      actions = []
+      index_stream = 0
+      qty_audio = @streams.select {|stream| stream.codec_type == 'audio'}.count
+      qty_video = @streams.select {|stream| stream.codec_type == 'video'}.count
+      out_maps = []
+      out_codecs = []
+      out_metadata = []
+            
       @streams.each do |stream|
 
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # subtitle stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
         if stream.codec_type == 'subtitle'
-          stream.instruction_types = [:drop]
+          
+          if !@owner[:keep_langs_subs].include?(stream.language)
+            actions |= [:drop]
+          elsif !@owner[:codecs_subs_preferred].include?(stream.codec_name)
+            actions |= [:drop]
+          elsif stream.language.downcare == 'und'
+            actions |= [:copy, :set_language]
+          end
+          
+          if stream.title
+            actions |= [:copy]
+          end
+          
+          if action.count == 0
+            # not interesting
+            actions |= [:copy]
+          else
+            # interesting, if options allow it.
+          end
 
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # video stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
         elsif stream.codec_type == 'video'
-          stream.instruction_types = [:drop]
+          
+          if stream.codec_name == 'mjpeg'
+            actions |= [:drop]
+          end 
+             
+          unless actions.include?(:drop) && @owner[:codecs_video_preferred].include?(stream.codec_name)
+            if has_one_of_codecs(@owner[:codecs_video_preferred])
+              actions |= [:drop]
+            else
+              actions |= [:transcode]
+            end
+          end 
+                    
+          unless actions.include?(:drop) &&@owner[:keep_langs_video].include?(stream.language)
+            if has_one_of_langs(@owner[:keep_langs_video])
+              actions |= [:drop]
+            else
+              if actions.include?(:transcode)
+                actions |= [:set_language]
+              else
+                actions |= [:copy, :set_language]
+              end
+            end
+          end
 
+          unless actions.include?(:drop) || actions.include?(:transcode)
+            if stream.title
+              actions |= [:copy]
+            end
+          end
+
+          if action.count == 0
+            # not interesting
+            actions |= [:copy]
+          else
+            # interesting, if options allow it.
+          end
+          
+
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # audio stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
         elsif stream.codec_type == 'audio'
           stream.instruction_types = [:drop]
 
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # other stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
         else
           stream.instruction_types = [:drop]
         end
 
 
 
-      end
+      end # do |stream|
 
+    end # sub
+
+    #------------------------------------------------------------
+    # Given an array of codecs, returns a codec or nil if at
+    # least one of the streams contains a codec of the array.
+    # The array of codecs is in priority order; the return
+    # value indicates the highest priority codec, or else nil
+    # if none of the codecs are present.
+    #------------------------------------------------------------
+    def has_one_of_codecs(codecs)
+      codecs.each do |codec|
+        return codec if @streams.count { |stream| stream.codec_name == codec } > 0
+      end # do |codec|
+      nil
+    end
+
+    #------------------------------------------------------------
+    # Given an array of languages, returns a language or nil if 
+    # at least one of the streams contains is a language in the
+    # the array. The array of languages is in priority order;
+    # the return value indicates the highest priority language,
+    # or else nil if none of the languages are present.
+    #------------------------------------------------------------
+    def has_one_of_langs(languages)
+      languages.each do |language|
+        return language if @streams.count { |stream| stream.language == language } > 0
+      end # do |language|
+      nil
     end
 
     #------------------------------------------------------------
