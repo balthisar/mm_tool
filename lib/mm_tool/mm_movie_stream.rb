@@ -85,7 +85,7 @@ module MmTool
     #   if the language is not defined.
     #------------------------------------------------------------
     def language
-      if @data.key(:tags)
+      if @data.key?(:tags)
         lang = @data[:tags][:language]
         lang = @data[:tags][:LANGUAGE] unless lang
         lang = 'und' unless lang
@@ -99,7 +99,7 @@ module MmTool
     # Property - returns the title of the stream, or nil.
     #------------------------------------------------------------
     def title
-      if @data.key(:tags)
+      if @data.key?(:tags)
         @data[:tags][:title]
       else
         nil
@@ -182,7 +182,7 @@ module MmTool
           a = @owner.owner[:keep_langs_subs].include?(language)
           b = @owner.owner[:codecs_subs_preferred].include?(codec_name)
           c = language.downcase == 'und'
-          d = title == nil
+          d = title != nil
 
           if (!a && !b) || (!a && !c) || (a && !b)
             @actions |= [:drop]
@@ -207,7 +207,7 @@ module MmTool
           b = @owner.owner[:codecs_video_preferred].include?(codec_name)
           c = @owner.owner[:keep_langs_video].include?(language)
           d = language.downcase == 'und'
-          e = title == nil
+          e = title != nil
           f = @owner.owner[:scan_type] == 'quality' && low_quality?
 
           if (a)
@@ -238,7 +238,7 @@ module MmTool
           a = @owner.owner[:codecs_audio_preferred].include?(codec_name)
           b = @owner.owner[:keep_langs_audio].include?(language)
           c = language.downcase == 'und'
-          d = title == nil
+          d = title != nil
           e = @owner.owner[:scan_type] == 'quality' && low_quality?
 
           if (!a && !b && !c) || (a && !b && !c)
@@ -247,7 +247,7 @@ module MmTool
 
           if (a && b) || (a && !b && !c)
             @actions |= [:copy]
-            q      end
+          end
 
           if (!a && !b && c ) || (!a && b)
             @actions |= [:transcode]
