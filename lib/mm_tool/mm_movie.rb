@@ -86,7 +86,7 @@ module MmTool
           row << stream.language
           row << stream.dispositions
           row << stream.title
-          row << stream.actions.join(' ')
+          row << "#{stream.output_index} #{stream.output_specifier} #{stream.actions.join(' ')}"
           @table << row
         end
       end

@@ -18,7 +18,6 @@ module MmTool
       unless from_movie.class == MmTool::MmMovie
         raise Exception.new "Error: parameter must be an MmTool::MmMovie instance."
       end
-
       from_movie.ff_movie.metadata[:streams].collect do |stream|
         MmMovieStream.new(with_data: stream, from_movie: from_movie)
       end
@@ -28,62 +27,62 @@ module MmTool
     # Define and setup instance variables.
     #------------------------------------------------------------
     def initialize(with_data:, from_movie:)
+      @data  = with_data
       @owner = from_movie
-      @data = with_data
-      @instruction_types = []
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the index of the stream.
     #------------------------------------------------------------
     def index
       @data[:index]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the codec name of the stream.
     #------------------------------------------------------------
     def codec_name
       @data[:codec_name]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the codec type of the stream.
     #------------------------------------------------------------
     def codec_type
       @data[:codec_type]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the coded width of the stream.
     #------------------------------------------------------------
     def coded_width
       @data[:coded_width]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the coded height of the stream.
     #------------------------------------------------------------
     def coded_height
       @data[:coded_height]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the number of channels of the stream.
     #------------------------------------------------------------
     def channels
       @data[:channels]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the channel layout of the stream.
     #------------------------------------------------------------
     def channel_layout
       @data[:channel_layout]
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the language of the stream, or 'und'
+    #   if the language is not defined.
     #------------------------------------------------------------
     def language
       if @data.key(:tags)
@@ -97,7 +96,7 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the title of the stream, or nil.
     #------------------------------------------------------------
     def title
       if @data.key(:tags)
@@ -108,7 +107,8 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the disposition flags of the stream as
+    #   a comma-separated list for compactness.
     #------------------------------------------------------------
     def dispositions
       MmMovie.dispositions
@@ -117,7 +117,8 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns an appropriate "quality" indicator
+    #   based on the type of the stream.
     #------------------------------------------------------------
     def quality_01
       if codec_type == 'audio'
@@ -130,7 +131,8 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns a different appropriate "quality"
+    #   indicator based on the type of the stream.
     #------------------------------------------------------------
     def quality_02
       if codec_type == 'audio'
@@ -143,7 +145,9 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - indicates whether or not the stream is
+    #   considered "low quality" based on the application
+    #   configuration.
     #------------------------------------------------------------
     def low_quality?
       if codec_type == 'audio'
@@ -156,7 +160,8 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns an array of actions that are suggested
+    #   for the stream based on quality, language, codec, etc.
     #------------------------------------------------------------
     def actions
 
@@ -242,7 +247,7 @@ module MmTool
 
           if (a && b) || (a && !b && !c)
             @actions |= [:copy]
-          end
+            q      end
 
           if (!a && !b && c ) || (!a && b)
             @actions |= [:transcode]
@@ -267,6 +272,23 @@ module MmTool
       @actions
     end # actions
 
+    #------------------------------------------------------------
+    # Property
+    #------------------------------------------------------------
+    def output_index
+      idx = index
+      @owner.streams.select {|s| s.index < index}
+          .each {|s| idx = idx - 1 if s.actions.include?(:drop) }
+      idx
+    end
+
+    #------------------------------------------------------------
+    # Property
+    #------------------------------------------------------------
+    def output_specifier
+      idx = @owner.streams.select {|s| s.codec_type == codec_type && s.index <= index}.count - 1
+      "#{codec_type[0]}:#{idx}"
+    end
 
   end # MmMovieStream
 
