@@ -143,7 +143,9 @@ module MmTool
     def command_transcode
       command = []
       command << "ffmpeg -i \"#{new_input_path}\" \\"
-
+      @streams.each {|stream| command << "   #{stream.instruction_map}" if stream.instruction_map }
+      @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
+      @streams.each {|stream| command << "   #{stream.instruction_metadata}" if stream.instruction_metadata }
       command << "   \"#{output_path}\""
     end
 

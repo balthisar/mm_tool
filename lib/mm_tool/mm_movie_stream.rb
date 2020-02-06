@@ -273,7 +273,8 @@ module MmTool
     end # actions
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns the index of the stream in the output
+    #   file.
     #------------------------------------------------------------
     def output_index
       idx = index
@@ -283,11 +284,68 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property
+    # Property - returns a specific output specifier for the
+    #   stream, such as v:0 or a:2.
     #------------------------------------------------------------
     def output_specifier
       idx = @owner.streams.select {|s| s.codec_type == codec_type && s.index <= index}.count - 1
       "#{codec_type[0]}:#{idx}"
+    end
+
+    #------------------------------------------------------------
+    # Property - returns the -map instruction for this stream,
+    #   according to the action(s) determined.
+    #------------------------------------------------------------
+    def instruction_map
+      actions.include?(:drop) ? nil : "-map 0:#{index} \\"
+    end
+
+    #------------------------------------------------------------
+    # Property - returns an instruction for handling the stream,
+    #   according to the action(s) determined.
+    #------------------------------------------------------------
+    def instruction_action
+      if actions.include?(:copy)
+        "-codec:#{output_specifier} copy \\"
+      elsif actions.include?(:transcode)
+        "-codec:#{output_specifier} encoder_string(for_codec: codec_name) \\"
+      else
+        nil
+      end
+    end
+
+    #------------------------------------------------------------
+    # Property - returns an instruction for setting the metadata
+    #   of the stream, if necessary.
+    #------------------------------------------------------------
+    def instruction_metadata
+      set_language = actions.include?(:set_language) ? "language=#{@owner.owner[:undefined_language]} " : nil
+      set_title = title ? "title=\"#{title}\"" : nil
+
+      if set_language || set_title
+        "-metadata:s:#{output_specifier} #{set_language}#{set_title} \\"
+      else
+        nil
+      end
+    end
+
+    private
+
+
+    #------------------------------------------------------------
+    # Given a codec, return the ffmpeg encoder string.
+    #------------------------------------------------------------
+    def encoder_string(for_codec:)
+      case for_codec.downcase
+      when 'hevc'
+        "libx265 -crf 28 -preset slow"
+      when 'h264'
+        "libx264 -crf 23 -preset slow"
+      when 'aac'
+        "libfdk_aac"
+      else
+        raise Exception.new "Error: somehow an unsupported codec '#{for_codec}' was specified."
+      end
     end
 
   end # MmMovieStream
