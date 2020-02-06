@@ -413,7 +413,7 @@ module MmTool
         pp(movie.ff_movie)
       else
         output(movie.table_text)
-        puts movie.command_transcode
+        output movie.command_transcode
         puts
       end
     end

@@ -25,11 +25,6 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Attributes
-    #------------------------------------------------------------
-    attr_accessor :instruction_types # :drop, :passthrough, :transcode
-
-    #------------------------------------------------------------
     # Define and setup instance variables.
     #------------------------------------------------------------
     def initialize(with_data:, from_movie:)
@@ -146,6 +141,131 @@ module MmTool
         nil
       end
     end
+
+    #------------------------------------------------------------
+    # Property
+    #------------------------------------------------------------
+    def low_quality?
+      if codec_type == 'audio'
+        channels.to_i < @owner.owner[:min_channels].to_i
+      elsif codec_type == 'video'
+        coded_width.to_i < @owner.owner[:min_width].to_i
+      else
+        false
+      end
+    end
+
+    #------------------------------------------------------------
+    # Property
+    #------------------------------------------------------------
+    def actions
+
+      #------------------------------------------------------------
+      # Note: logic below a result of Karnaugh mapping of the
+      # selection truth table for each desired action. There's
+      # probably an excel file somewhere in the repository.
+      #------------------------------------------------------------
+
+      if @actions.nil?
+        @actions = []
+
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # subtitle stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        if codec_type == 'subtitle'
+
+          a = @owner.owner[:keep_langs_subs].include?(language)
+          b = @owner.owner[:codecs_subs_preferred].include?(codec_name)
+          c = language.downcase == 'und'
+          d = title == nil
+
+          if (!a && !b) || (!a && !c) || (a && !b)
+            @actions |= [:drop]
+          else
+            @actions |= [:copy]
+          end
+
+          if (b && c)
+            @actions |= [:set_language]
+          end
+
+          if (!a || !b || c || d)
+            @actions |= [:interesting]
+          end
+
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+          # video stream handler
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+        elsif codec_type == 'video'
+
+          a = codec_name.downcase == 'mjpeg'
+          b = @owner.owner[:codecs_video_preferred].include?(codec_name)
+          c = @owner.owner[:keep_langs_video].include?(language)
+          d = language.downcase == 'und'
+          e = title == nil
+          f = @owner.owner[:scan_type] == 'quality' && low_quality?
+
+          if (a)
+            @actions |= [:drop]
+          end
+
+          if (!a && b)
+            @actions |= [:copy]
+          end
+
+          if (!a && !b)
+            @actions |= [:transcode]
+          end
+
+          if (!a && d)
+            @actions |= [:set_language]
+          end
+
+          if (a || !b || !c || d || e || f)
+            @actions |= [:interesting]
+          end
+
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+          # audio stream handler
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+        elsif codec_type == 'audio'
+
+          a = @owner.owner[:codecs_audio_preferred].include?(codec_name)
+          b = @owner.owner[:keep_langs_audio].include?(language)
+          c = language.downcase == 'und'
+          d = title == nil
+          e = @owner.owner[:scan_type] == 'quality' && low_quality?
+
+          if (!a && !b && !c) || (a && !b && !c)
+            @actions |= [:drop]
+          end
+
+          if (a && b) || (a && !b && !c)
+            @actions |= [:copy]
+          end
+
+          if (!a && !b && c ) || (!a && b)
+            @actions |= [:transcode]
+          end
+
+          if (c)
+            @actions |= [:set_language]
+          end
+
+          if (!a || !b || c || d || e)
+            @actions |= [:interesting]
+          end
+
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+          # other stream handler
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+        else
+          @actions |= [:drop]
+        end
+      end # if @actions.nil?
+
+      @actions
+    end # actions
 
 
   end # MmMovieStream
