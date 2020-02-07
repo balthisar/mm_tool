@@ -27,8 +27,11 @@ module MmTool
     # Define and setup instance variables.
     #------------------------------------------------------------
     def initialize(with_data:, from_movie:)
-      @data  = with_data
-      @owner = from_movie
+      unless from_movie.class == MmTool::MmMovie
+        raise Exception.new "Error: parameter must be an MmTool::MmMovie instance."
+      end
+      @data        = with_data
+      @owner       = from_movie
     end
 
     #------------------------------------------------------------
@@ -36,6 +39,13 @@ module MmTool
     #------------------------------------------------------------
     def index
       @data[:index]
+    end
+
+    #------------------------------------------------------------
+    # Property - returns the input specifier of the stream.
+    #------------------------------------------------------------
+    def input_specifier
+      "#{file_number}:#{index}"
     end
 
     #------------------------------------------------------------
@@ -142,6 +152,21 @@ module MmTool
       else
         nil
       end
+    end
+
+    #------------------------------------------------------------
+    # Property - the file number, when multiple files are
+    #   specified.
+    #------------------------------------------------------------
+    def file_number
+      if @file_number.nil?
+        @file_number = 0
+      end
+      @file_number
+    end
+
+    def file_number=(number)
+      @file_number = number
     end
 
     #------------------------------------------------------------
@@ -293,10 +318,7 @@ module MmTool
     #   file.
     #------------------------------------------------------------
     def output_index
-      idx = index
-      @owner.streams.select {|s| s.index < index}
-          .each {|s| idx = idx - 1 if s.actions.include?(:drop) }
-      idx
+      @owner.streams.select {|s| !s.actions.include?(:drop) }.index(self)
     end
 
     #------------------------------------------------------------
@@ -304,7 +326,7 @@ module MmTool
     #   stream, such as v:0 or a:2.
     #------------------------------------------------------------
     def output_specifier
-      idx = @owner.streams.select {|s| s.codec_type == codec_type && s.index <= index}.count - 1
+      idx = @owner.streams.select {|s| s.codec_type == codec_type && !s.actions.include?(:drop)}.index(self)
       "#{codec_type[0]}:#{idx}"
     end
 
@@ -313,7 +335,7 @@ module MmTool
     #   according to the action(s) determined.
     #------------------------------------------------------------
     def instruction_map
-      actions.include?(:drop) ? nil : "-map 0:#{index} \\"
+      actions.include?(:drop) ? nil : "-map #{input_specifier} \\"
     end
 
     #------------------------------------------------------------

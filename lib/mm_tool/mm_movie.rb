@@ -37,8 +37,15 @@ module MmTool
     def initialize(with_file:, owner:)
       @path     = with_file
       @owner    = owner
+
+      subtitle_streams = []
+      srt_paths.each_with_index do |path, i|
+        @ff_movie = FFMPEG::Movie.new(path)
+        subtitle_streams |= MmMovieStream::streams(from_movie: self).each {|s| s.file_number = i+1}
+      end
+
       @ff_movie = FFMPEG::Movie.new(with_file)
-      @streams  = MmMovieStream::streams(from_movie: self)
+      @streams  = MmMovieStream::streams(from_movie: self) | subtitle_streams
     end
 
     #------------------------------------------------------------
@@ -78,7 +85,7 @@ module MmTool
 
         @streams.each do |stream|
           row = []
-          row << stream.index
+          row << stream.input_specifier
           row << stream.codec_name
           row << stream.codec_type
           row << stream.quality_01
@@ -110,6 +117,22 @@ module MmTool
       end
 
       @table_text
+    end
+
+
+    #------------------------------------------------------------
+    # If there are adjacent SRTs without a language, or with a
+    # language specified in options, then this array will have
+    # them.
+    #------------------------------------------------------------
+    def srt_paths
+      if @srt_paths.nil?
+        base_path = File.join(File.dirname(@path), File.basename(@path, '.*'))
+        @srt_paths = ([""] | @owner[:keep_langs_subs].map {|lang| ".#{lang}" })
+            .select {|lang| File.file?("#{base_path}#{lang}.srt")}
+            .map {|lang| "#{base_path}#{lang}.srt"}
+      end
+      @srt_paths
     end
 
     #------------------------------------------------------------
