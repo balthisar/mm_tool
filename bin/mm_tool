@@ -184,6 +184,18 @@ module MmTool
         when '--info-header'
           app[:info_header] = true
 
+        when '--ignore-files'
+          app[:ignore_files] = true
+
+        when '--no-ignore-files'
+          app[:ignore_files] = false
+
+        when '--unignore-files'
+          app[:unignore_files] = true
+
+        when '--no-unignore-files'
+          app[:unignore_files] = false
+
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"
 
@@ -233,6 +245,8 @@ module MmTool
         #-----------------------
 
         when '--transcode'
+          app[:ignore_files] = false
+          app[:unignore_files] = false
           app[:transcode] = true
 
         when '--no-transcode'

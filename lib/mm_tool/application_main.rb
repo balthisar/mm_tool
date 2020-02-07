@@ -5,8 +5,9 @@ module MmTool
   #=============================================================================
   class ApplicationMain
 
-    require "mm_tool/mm_tool_console_output_helpers"
-    require "mm_tool/mm_movie"
+    require 'mm_tool/mm_tool_console_output_helpers'
+    require 'mm_tool/mm_movie'
+    require 'mm_tool/mm_movie_ignore_list'
     include MmToolConsoleOutputHelpers
 
     #------------------------------------------------------------
@@ -77,6 +78,34 @@ module MmTool
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
                 Don't show the information header indicating much of the configuration at the beginning of the output.
+              HEREDOC
+          },
+
+          :ignore_files => {
+              :default    => false,
+              :value      => nil,
+              :arg_short  => nil,
+              :arg_long   => '--ignore-files',
+              :arg_format => nil,
+              :help_group => 'Main Options',
+              :help_desc  => <<~HEREDOC
+                Files following this command will not be inspected; instead, they will be added to the persistent list
+                of files to be ignored. You can use #{c.bold('--no-ignore-files')} to flip this flag back off for
+                subsequent files on the command line.
+              HEREDOC
+          },
+
+          :unignore_files => {
+              :default    => false,
+              :value      => nil,
+              :arg_short  => nil,
+              :arg_long   => '--unignore-files',
+              :arg_format => nil,
+              :help_group => 'Main Options',
+              :help_desc  => <<~HEREDOC
+                Files following this command will be removed from the persistent list of files to be ignored. 
+                You can use #{c.bold('--no-unignore-files')} to flip this flag back off for subsequent files on the 
+                command line.
               HEREDOC
           },
 
@@ -380,7 +409,7 @@ module MmTool
       <<~HEREDOC
                 #{c.bold('Looking for file(s) and processing them with the following options:')}
                            Media Filetypes: #{self[:container_files]&.join(',')}
-                            Verbose Output: #{self[:verbose]&.human}
+                                 Scan Type: #{self[:scan_type]}
                                   Raw Dump: #{self[:dump]&.human}
                       Preferred Containers: #{self[:containers_preferred]&.join(',')}
                     Preferred Audio Codecs: #{self[:codecs_audio_preferred]&.join(',')}
@@ -391,11 +420,9 @@ module MmTool
                    Keep Subtitle Languages: #{self[:keep_langs_audio]&.join(',')}
                        Transcode if Needed: #{self[:transcode]&.human}
                    Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
-                        Drop all Subtitles: #{self[:drop_subs]&.human}
                       Original File Suffix: #{self[:suffix]}
                      Undefined Language is: #{self[:undefined_language]} 
                     Fix Undefined Language: #{self[:fix_undefined_language]&.human}
-                  Show Low Quality Reports: #{self[:quality_reports]&.human}
                        Minimum Video Width: #{self[:min_width]}
                     Minimum Audio Channels: #{self[:min_channels]}
         #{hanging_string(string: '               Disposition Columns: ' + MmMovie.dispositions.join(', '), hang: 36, margin: TTY::Screen.width - 1) }
@@ -406,18 +433,30 @@ module MmTool
     # The main run loop, to be run for each file.
     #------------------------------------------------------------
     def run_loop(file_name)
-      movie = MmMovie.new(with_file: file_name, owner:self)
-      output movie.path
-      output "   Title: #{movie.format_title}"
-      output "Duration: #{movie.format_duration}"
-      output "    Size: #{movie.format_size}"
-      if self[:dump]
-        pp(movie.ff_movie)
+
+      if self[:ignore_files]
+        MmMovieIgnoreList.shared_ignore_list.add(path: file_name)
+        output("Note: added #{file_name} to the list of files to be ignored.")
+      elsif self[:unignore_files]
+        MmMovieIgnoreList.shared_ignore_list.remove(path: file_name)
+        output("Note: removed #{file_name} to the list of files to be ignored.")
       else
-        output(movie.table_text)
-        output movie.command_transcode
-        puts
-      end
+        unless MmMovieIgnoreList.shared_ignore_list.include?(file_name)
+          movie = MmMovie.new(with_file: file_name, owner:self)
+          output movie.path
+          output "   Title: #{movie.format_title}"
+          output "Duration: #{movie.format_duration}"
+          output "    Size: #{movie.format_size}"
+          if self[:dump]
+            pp(movie.ff_movie)
+          else
+            output(movie.table_text)
+            output movie.command_transcode
+            puts
+          end
+        end
+
+      end # if
     end
 
 

@@ -365,7 +365,10 @@ module MmTool
     #   of the stream, if necessary.
     #------------------------------------------------------------
     def instruction_metadata
-      lang = subtitle_file_language ? subtitle_file_language : @owner.owner[:undefined_language]
+      # We only want to set fixed_lang if options allow us to fix the language,
+      # and we want to set subtitle language from the filename, if applicable.
+      fixed_lang = @owner.owner[:fix_undefined_language] ? @owner.owner[:undefined_language] : nil
+      lang = subtitle_file_language ? subtitle_file_language : fixed_lang
       set_language = actions.include?(:set_language) ? "language=#{lang} " : nil
       set_title = title ? "title=\"#{title}\" " : nil
 
