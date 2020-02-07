@@ -249,7 +249,7 @@ module MmTool
             @actions |= [:copy]
           end
 
-          if (!a && !b && c ) || (!a && b)
+          if (!a && !b && c) || (!a && b)
             @actions |= [:transcode]
           end
 

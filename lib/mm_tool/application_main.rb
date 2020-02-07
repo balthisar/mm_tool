@@ -20,6 +20,7 @@ module MmTool
     #------------------------------------------------------------
     def initialize
 
+      #noinspection RubyResolve
       @options = {
 
           #----------------------------
@@ -374,26 +375,27 @@ module MmTool
     #------------------------------------------------------------
     # Return the report header.
     #------------------------------------------------------------
+    #noinspection RubyResolve
     def information_header
       <<~HEREDOC
                 #{c.bold('Looking for file(s) and processing them with the following options:')}
-                           Media Filetypes: #{self[:container_files].join(',')}
-                            Verbose Output: #{self[:verbose].human}
-                                  Raw Dump: #{self[:dump].human}
-                      Preferred Containers: #{self[:containers_preferred].join(',')}
-                    Preferred Audio Codecs: #{self[:codecs_audio_preferred].join(',')}
-                    Preferred Video Codecs: #{self[:codecs_video_preferred].join(',')}
-                 Preferred Subtitle Codecs: #{self[:codecs_subs_preferred].join(',')}
-                      Keep Audio Languages: #{self[:keep_langs_audio].join(',')}
-                      Keep Video Languages: #{self[:keep_langs_audio].join(',')}
-                   Keep Subtitle Languages: #{self[:keep_langs_audio].join(',')}
-                       Transcode if Needed: #{self[:transcode].human}
+                           Media Filetypes: #{self[:container_files]&.join(',')}
+                            Verbose Output: #{self[:verbose]&.human}
+                                  Raw Dump: #{self[:dump]&.human}
+                      Preferred Containers: #{self[:containers_preferred]&.join(',')}
+                    Preferred Audio Codecs: #{self[:codecs_audio_preferred]&.join(',')}
+                    Preferred Video Codecs: #{self[:codecs_video_preferred]&.join(',')}
+                 Preferred Subtitle Codecs: #{self[:codecs_subs_preferred]&.join(',')}
+                      Keep Audio Languages: #{self[:keep_langs_audio]&.join(',')}
+                      Keep Video Languages: #{self[:keep_langs_audio]&.join(',')}
+                   Keep Subtitle Languages: #{self[:keep_langs_audio]&.join(',')}
+                       Transcode if Needed: #{self[:transcode]&.human}
                    Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
-                        Drop all Subtitles: #{self[:drop_subs].human}
+                        Drop all Subtitles: #{self[:drop_subs]&.human}
                       Original File Suffix: #{self[:suffix]}
                      Undefined Language is: #{self[:undefined_language]} 
-                    Fix Undefined Language: #{self[:fix_undefined_language].human}
-                  Show Low Quality Reports: #{self[:quality_reports].human}
+                    Fix Undefined Language: #{self[:fix_undefined_language]&.human}
+                  Show Low Quality Reports: #{self[:quality_reports]&.human}
                        Minimum Video Width: #{self[:min_width]}
                     Minimum Audio Channels: #{self[:min_channels]}
         #{hanging_string(string: '               Disposition Columns: ' + MmMovie.dispositions.join(', '), hang: 36, margin: TTY::Screen.width - 1) }
@@ -441,7 +443,7 @@ module MmTool
 
       elsif File.directory?(file_or_dir)
 
-        extensions = self[:container_files].join(',')
+        extensions = self[:container_files]&.join(',')
         Dir.chdir(file_or_dir) do
           Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort.each do |file|
             run_loop(file)

@@ -32,6 +32,7 @@ module MmTool
     #------------------------------------------------------------
     # Print Help
     #------------------------------------------------------------
+    #noinspection RubyResolve
     def print_help
       # Gather the basic dimensions required for output.
       # Support a minimum width of 60, which is reasonable, and
@@ -74,6 +75,7 @@ module MmTool
     #------------------------------------------------------------
     # Validate pre-requisites.
     #------------------------------------------------------------
+    #noinspection RubyResolve
     def validate_prerequisites
       commands = %w(ffmpeg)
       codecs   = %w(libx264 libx265 libfdk_aac)
@@ -107,6 +109,7 @@ module MmTool
     #------------------------------------------------------------
     # Run the CLI.
     #------------------------------------------------------------
+    #noinspection RubyResolve
     def run(args)
 
       path = nil
@@ -298,6 +301,7 @@ module MmTool
     # Perform a really simple validation of the given value for
     # the given argument, returning the value if successful.
     # ------------------------------------------------------------
+    #noinspection RubyResolve
     def validate_arg_value(arg, value)
       if !value
         print_error_and_exit("Error: option #{c.bold(arg)} was specified, but no value was given.")
