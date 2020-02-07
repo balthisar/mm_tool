@@ -145,6 +145,14 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Property - indicates whether or not the stream is the
+    #   default stream per its dispositions.
+    #------------------------------------------------------------
+    def default?
+      @data[:disposition][:default] == 1
+    end
+
+    #------------------------------------------------------------
     # Property - indicates whether or not the stream is
     #   considered "low quality" based on the application
     #   configuration.
@@ -273,6 +281,14 @@ module MmTool
     end # actions
 
     #------------------------------------------------------------
+    # Property - indicates whether or not the stream will be
+    #   unique for its type at output.
+    #------------------------------------------------------------
+    def output_unique?
+      @owner.streams.count {|s| s.codec_type  == codec_type && !s.actions.include?(:drop) } == 1
+    end
+
+    #------------------------------------------------------------
     # Property - returns the index of the stream in the output
     #   file.
     #------------------------------------------------------------
@@ -308,7 +324,14 @@ module MmTool
       if actions.include?(:copy)
         "-codec:#{output_specifier} copy \\"
       elsif actions.include?(:transcode)
-        "-codec:#{output_specifier} encoder_string(for_codec: codec_name) \\"
+        if codec_type == 'audio'
+          encode_to = @owner.owner[:codecs_audio_preferred][0]
+        elsif codec_type == 'video'
+          encode_to = @owner.owner[:codecs_video_preferred][0]
+        else
+          raise Exception.new "Error: somehow the program branched where it shouldn't have."
+        end
+        "-codec:#{output_specifier} #{encoder_string(for_codec: encode_to)} \\"
       else
         nil
       end
@@ -320,14 +343,29 @@ module MmTool
     #------------------------------------------------------------
     def instruction_metadata
       set_language = actions.include?(:set_language) ? "language=#{@owner.owner[:undefined_language]} " : nil
-      set_title = title ? "title=\"#{title}\"" : nil
+      set_title = title ? "title=\"#{title}\" " : nil
 
       if set_language || set_title
-        "-metadata:s:#{output_specifier} #{set_language}#{set_title} \\"
+        "-metadata:s:#{output_specifier} #{set_language}#{set_title}\\"
       else
         nil
       end
     end
+
+    #------------------------------------------------------------
+    # Property - returns an instruction for setting the stream's
+    #   default disposition, if necessary.
+    #------------------------------------------------------------
+    def instruction_disposition
+      set_disposition = output_unique? && !default? ? "default " : nil
+
+      if set_disposition
+        "-disposition:#{output_specifier} #{set_disposition}\\"
+      else
+        nil
+      end
+    end
+
 
     private
 
