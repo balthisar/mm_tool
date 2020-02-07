@@ -32,7 +32,15 @@ module MmTool
       end
       @data        = with_data
       @owner       = from_movie
+      @file_number = 0
+      @source_file = from_movie.ff_movie.path
     end
+
+    #------------------------------------------------------------
+    # Simple properties.
+    #------------------------------------------------------------
+    attr_accessor :file_number
+    attr_accessor :source_file
 
     #------------------------------------------------------------
     # Property - returns the index of the stream.
@@ -152,21 +160,6 @@ module MmTool
       else
         nil
       end
-    end
-
-    #------------------------------------------------------------
-    # Property - the file number, when multiple files are
-    #   specified.
-    #------------------------------------------------------------
-    def file_number
-      if @file_number.nil?
-        @file_number = 0
-      end
-      @file_number
-    end
-
-    def file_number=(number)
-      @file_number = number
     end
 
     #------------------------------------------------------------
@@ -331,6 +324,14 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Property - returns the -i input instruction for this
+    #   stream.
+    #------------------------------------------------------------
+    def instruction_input
+      "-i \"#{source_file}\""
+    end
+
+    #------------------------------------------------------------
     # Property - returns the -map instruction for this stream,
     #   according to the action(s) determined.
     #------------------------------------------------------------
@@ -364,7 +365,8 @@ module MmTool
     #   of the stream, if necessary.
     #------------------------------------------------------------
     def instruction_metadata
-      set_language = actions.include?(:set_language) ? "language=#{@owner.owner[:undefined_language]} " : nil
+      lang = subtitle_file_language ? subtitle_file_language : @owner.owner[:undefined_language]
+      set_language = actions.include?(:set_language) ? "language=#{lang} " : nil
       set_title = title ? "title=\"#{title}\" " : nil
 
       if set_language || set_title
@@ -406,6 +408,17 @@ module MmTool
       else
         raise Exception.new "Error: somehow an unsupported codec '#{for_codec}' was specified."
       end
+    end
+
+    #------------------------------------------------------------
+    # If the source file is an srt, and there's a language, and
+    # it's in the approved language list, then return it;
+    # otherwise return nil.
+    #------------------------------------------------------------
+    def subtitle_file_language
+      langs = @owner.owner[:keep_langs_subs]&.join('|')
+      lang = source_file.match(/^.*\.(#{langs})\.srt$/)
+      lang ? lang[1] : nil
     end
 
   end # MmMovieStream

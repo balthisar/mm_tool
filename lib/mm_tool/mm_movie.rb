@@ -38,6 +38,9 @@ module MmTool
       @path     = with_file
       @owner    = owner
 
+      # Before we create the movie instance and its streams proper, we'll get all of
+      # the streams from any subtitle files that are lying around, and then add them
+      # the the main file's streams later, after creating them.
       subtitle_streams = []
       srt_paths.each_with_index do |path, i|
         @ff_movie = FFMPEG::Movie.new(path)
@@ -93,7 +96,7 @@ module MmTool
           row << stream.language
           row << stream.dispositions
           row << stream.title
-          row << "#{stream.output_index} #{stream.output_specifier} #{stream.actions.join(' ')}"
+          row << "#{stream.output_specifier} #{stream.actions.select {|a| a != :interesting}.join(' ')}"
           @table << row
         end
       end
@@ -165,7 +168,10 @@ module MmTool
     #------------------------------------------------------------
     def command_transcode
       command = []
+      extra_inputs = @streams.select {|s| s.file_number > 0 }.map {|s| s.instruction_input}
+
       command << "ffmpeg -i \"#{new_input_path}\" \\"
+      extra_inputs.each {|i| command << "       #{i} \\" if extra_inputs.count > 0 }
       @streams.each {|stream| command << "   #{stream.instruction_map}" if stream.instruction_map }
       @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
       @streams.each {|stream| command << "   #{stream.instruction_disposition}" if stream.instruction_disposition }
