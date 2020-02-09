@@ -473,7 +473,7 @@ module MmTool
             output(movie.path)
             output(movie.format_table_text)
             output(movie.table_text)
-            output("mv #{movie.path} #{movie.new_input_path} ; \\", true)
+            output("mv \"#{movie.path}\" \"#{movie.new_input_path}\" ; \\", true)
             output(movie.command_transcode, true)
             output("\n\n", true)
           end
