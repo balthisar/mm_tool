@@ -21,6 +21,8 @@ module MmTool
     #------------------------------------------------------------
     def initialize
 
+      @tempfile = nil
+
       #noinspection RubyResolve
       @options = {
 
@@ -382,8 +384,16 @@ module MmTool
     # Output a message to the screen, and if applicable, to
     # the temporary file for later opening.
     #------------------------------------------------------------
-    def output(message)
+    def output(message, command = false)
       puts message
+      if @tempfile
+        if command
+          message = message + "\n"
+        else
+          message = message.lines.collect {|line| "# #{line}"}.join + "\n"
+        end
+        @tempfile.write(message)
+      end
     end
 
     #------------------------------------------------------------
@@ -421,7 +431,7 @@ module MmTool
                       Keep Video Languages: #{self[:keep_langs_audio]&.join(',')}
                    Keep Subtitle Languages: #{self[:keep_langs_audio]&.join(',')}
                        Transcode if Needed: #{self[:transcode]&.human}
-                   Transcode file Location: #{self.tempfile ? tempfile.path : 'n/a'}
+                   Transcode file Location: #{self.tempfile ? tempfile&.path : 'n/a'}
                       Original File Suffix: #{self[:suffix]}
                      Undefined Language is: #{self[:undefined_language]} 
                     Fix Undefined Language: #{self[:fix_undefined_language]&.human}
@@ -448,7 +458,7 @@ module MmTool
         a = movie.interesting?
         b = MmMovieIgnoreList.shared_ignore_list.include?(file_name)
         c = movie.low_quality?
-        s = self[:scan_type].to_sym
+        s = self[:scan_type]&.to_sym
 
         if (s == :normal && a && !b && !c) ||
             (s == :all && !b) ||
@@ -457,17 +467,15 @@ module MmTool
             (s == :force)
 
           @file_count[:displayed] = @file_count[:displayed] + 1
-          output movie.path
-          output "   Title: #{movie.format_title}"
-          output "Duration: #{movie.format_duration}"
-          output "    Size: #{movie.format_size}"
-
           if self[:dump]
             pp(movie.ff_movie)
           else
+            output(movie.path)
+            output(movie.format_table_text)
             output(movie.table_text)
-            output movie.command_transcode
-            puts
+            output("mv #{movie.path} #{movie.new_input_path} ; \\", true)
+            output(movie.command_transcode, true)
+            output("\n\n", true)
           end
         end
       end # if
@@ -480,7 +488,12 @@ module MmTool
     def run(file_or_dir)
 
       @file_count = { :processed => 0, :displayed => 0 }
-      tempfile = self[:transcode] ? Tempfile.new('mm_tool-') : nil
+
+      if self[:transcode]
+        @tempfile = Tempfile.create(['mm_tool-', '.sh'])
+        @tempfile&.write(transcode_script_header)
+        # @tempfile.flush
+      end
 
       if self[:info_header]
         output information_header
@@ -510,8 +523,9 @@ module MmTool
       output("#{File.basename($0)} processed #{@file_count[:processed]} files and displayed data for #{@file_count[:displayed]} of them.")
 
     ensure
-      unless tempfile.nil?
-        tempfile.unlink
+      if @tempfile
+        @tempfile&.close
+        # @tempfile.unlink
       end
     end # run
 

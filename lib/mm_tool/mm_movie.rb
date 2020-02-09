@@ -75,6 +75,32 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Return a TTY::Table of the format data, above.
+    #------------------------------------------------------------
+    def format_table
+      unless @format_table
+        @format_table = TTY::Table.new(header: %w(Duration: Size: Title:))
+        @format_table << [format_duration, format_size, format_title]
+      end
+      @format_table
+    end
+
+    #------------------------------------------------------------
+    # Get the rendered text of the format_table.
+    #------------------------------------------------------------
+    def format_table_text
+      unless @format_table_text
+        @format_table_text = format_table.render(:basic) do |renderer|
+          renderer.column_widths = [10,10, 160]
+          renderer.multiline     = true
+          renderer.padding       = [0,1]
+          renderer.width         = 1000
+        end
+      end
+      @format_table_text
+    end
+
+    #------------------------------------------------------------
     # Return a TTY::Table of the movie, populated with the
     # pertinent data of each stream.
     #------------------------------------------------------------
@@ -109,10 +135,9 @@ module MmTool
     #------------------------------------------------------------
     def table_text
       unless @table_text
-        columns = [5,10,10,5,10,5,23,50,35]
         @table_text = table.render(:unicode) do |renderer|
           renderer.alignments    = [:center, :left, :left, :right, :right, :left, :left, :left, :left]
-          renderer.column_widths = columns
+          renderer.column_widths = [5,10,10,5,10,5,23,50,35]
           renderer.multiline     = true
           renderer.padding       = [0,1]
           renderer.width         = 1000
@@ -176,7 +201,9 @@ module MmTool
       @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
       @streams.each {|stream| command << "   #{stream.instruction_disposition}" if stream.instruction_disposition }
       @streams.each {|stream| command << "   #{stream.instruction_metadata}" if stream.instruction_metadata }
+      command << "   -metadata title=\"#{format_title}\"" if format_title
       command << "   \"#{output_path}\""
+      command.join("\n")
     end
 
     #------------------------------------------------------------
@@ -191,7 +218,7 @@ module MmTool
     # Indicates whether any of the streams are interesting.
     #------------------------------------------------------------
     def interesting?
-      streams.count {|stream| stream.actions.include?(:interesting)} > 0
+      streams.count {|stream| stream.actions.include?(:interesting)} > 0 || format_title
     end
 
   end # class MmMovie
