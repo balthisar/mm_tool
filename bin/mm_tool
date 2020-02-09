@@ -171,7 +171,7 @@ module MmTool
 
         when '--scan'
           value = validate_arg_value(args[0], args[1]).downcase
-          unless %w(normal all flagged quality).include?(value)
+          unless %w(normal all flagged quality force).include?(value)
             print_error("Note: value #{c.bold(value)} doesn't make sense; assuming #{c.bold('normal')}.")
             value = 'normal'
           end

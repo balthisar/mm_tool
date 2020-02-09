@@ -187,6 +187,12 @@ module MmTool
       streams.count {|stream| stream.low_quality?} > 0
     end
 
+    #------------------------------------------------------------
+    # Indicates whether any of the streams are interesting.
+    #------------------------------------------------------------
+    def interesting?
+      streams.count {|stream| stream.actions.include?(:interesting)} > 0
+    end
 
   end # class MmMovie
 

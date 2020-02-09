@@ -48,7 +48,9 @@ module MmTool
               :arg_format => '<extensions>',
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                A comma-separated list of file extensions assumed to be media files. The default is #{c.bold('%s')}.
+                A comma-separated list of file extensions assumed to be media files when examining directories. The
+                default is #{c.bold('%s')}. You can still pass individual files, such as subtitles, that are different
+                container formats.
               HEREDOC
           },
 
@@ -60,12 +62,12 @@ module MmTool
               :arg_format => '<scan_type>',
               :help_group => 'Main Options',
               :help_desc  => <<~HEREDOC
-                Type of files for which to show result. #{c.bold('normal')} will display results of files that have
-                some change proposed to them, or have some other characteristic that merits review. #{c.bold('all')}
-                will display all media files, even if there's nothing interesting about them (however, ignore-flagged
-                files will be ignored. #{c.bold('flagged')} will show data for all ignore-flagged files.
-                #{c.bold('quality')} will show results only for files not meeting quality thresholds.
-                The default is #{c.bold('%s')}.
+                Type of files for which to show results, when this program is given a directory. #{c.bold('normal')} 
+                will display results of files that have some change proposed to them, or have some other characteristic
+                that merits review. #{c.bold('all')} will display all media files, even if there's nothing interesting
+                about them (however, ignore-flagged files will be ignored. #{c.bold('flagged')} will show data for all
+                ignore-flagged files. #{c.bold('quality')} will show results only for files not meeting quality
+                thresholds. The default is #{c.bold('%s')}.
               HEREDOC
           },
 
@@ -441,12 +443,25 @@ module MmTool
         MmMovieIgnoreList.shared_ignore_list.remove(path: file_name)
         output("Note: removed #{file_name} to the list of files to be ignored.")
       else
-        unless MmMovieIgnoreList.shared_ignore_list.include?(file_name)
-          movie = MmMovie.new(with_file: file_name, owner:self)
+        @file_count[:processed] = @file_count[:processed] + 1
+        movie = MmMovie.new(with_file: file_name, owner:self)
+        a = movie.interesting?
+        b = MmMovieIgnoreList.shared_ignore_list.include?(file_name)
+        c = movie.low_quality?
+        s = self[:scan_type].to_sym
+
+        if (s == :normal && a && !b && !c) ||
+            (s == :all && !b) ||
+            (s == :flagged && b) ||
+            (s == :quality && c ) ||
+            (s == :force)
+
+          @file_count[:displayed] = @file_count[:displayed] + 1
           output movie.path
           output "   Title: #{movie.format_title}"
           output "Duration: #{movie.format_duration}"
           output "    Size: #{movie.format_size}"
+
           if self[:dump]
             pp(movie.ff_movie)
           else
@@ -455,7 +470,6 @@ module MmTool
             puts
           end
         end
-
       end # if
     end
 
@@ -465,9 +479,8 @@ module MmTool
     #------------------------------------------------------------
     def run(file_or_dir)
 
-      if self[:transcode]
-        self.tempfile = Tempfile.new('mm_tool-')
-      end
+      @file_count = { :processed => 0, :displayed => 0 }
+      tempfile = self[:transcode] ? Tempfile.new('mm_tool-') : nil
 
       if self[:info_header]
         output information_header
@@ -475,10 +488,10 @@ module MmTool
 
       if File.file?(file_or_dir)
 
-        # verbose = self[:verbose]
-        # self[:verbose] = true
+        original_scan_type = self[:scan_type]
+        self[:scan_type] = :force
         run_loop(file_or_dir)
-        # self[:verbose] = verbose
+        self[:scan_type] = original_scan_type
 
       elsif File.directory?(file_or_dir)
 
@@ -494,11 +507,12 @@ module MmTool
         exit 1
       end
 
-    ensure
-      if self.tempfile
-        self.tempfile.unlink
-      end
+      output("#{File.basename($0)} processed #{@file_count[:processed]} files and displayed data for #{@file_count[:displayed]} of them.")
 
+    ensure
+      unless tempfile.nil?
+        tempfile.unlink
+      end
     end # run
 
   end # class ApplicationMain
