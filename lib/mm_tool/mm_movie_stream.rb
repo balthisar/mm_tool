@@ -216,7 +216,7 @@ module MmTool
             @actions |= [:copy]
           end
 
-          if (b && c)
+          if (b && c) && (@owner.owner[:fix_undefined_language])
             @actions |= [:set_language]
           end
 
@@ -248,7 +248,7 @@ module MmTool
             @actions |= [:transcode]
           end
 
-          if (!a && d)
+          if (!a && d) && (@owner.owner[:fix_undefined_language])
             @actions |= [:set_language]
           end
 
@@ -279,7 +279,7 @@ module MmTool
             @actions |= [:transcode]
           end
 
-          if (c)
+          if (c) && (@owner.owner[:fix_undefined_language])
             @actions |= [:set_language]
           end
 
