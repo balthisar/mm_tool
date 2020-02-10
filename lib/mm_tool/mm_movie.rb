@@ -201,7 +201,7 @@ module MmTool
       @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
       @streams.each {|stream| command << "   #{stream.instruction_disposition}" if stream.instruction_disposition }
       @streams.each {|stream| command << "   #{stream.instruction_metadata}" if stream.instruction_metadata }
-      command << "   -metadata title=\"#{format_title}\"" if format_title
+      command << "   -metadata title=\"#{format_title}\" \\" if format_title
       command << "   \"#{output_path}\""
       command.join("\n")
     end
