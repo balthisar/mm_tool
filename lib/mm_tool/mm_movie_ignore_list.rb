@@ -20,23 +20,23 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Initialize variables and retrieve list from disk.
+    # Initialize
     #------------------------------------------------------------
     def initialize
       @ignore_list = []
       if !File.file?(file_path)
         FileUtils.mkdir_p(File.dirname(file_path))
       else
+        #noinspection RubyResolve
         @ignore_list = YAML.load(File.read(file_path))
       end
     end
-
 
     #------------------------------------------------------------
     # The location on the filesystem where the file exists.
     #------------------------------------------------------------
     def file_path
-      File.join(Dir.home, '.mm_tool', 'ignored_file_list.txt')
+      PATH_IGNORE_LIST
     end
 
     #------------------------------------------------------------
@@ -62,7 +62,6 @@ module MmTool
       @ignore_list.delete(path)
       File.open(file_path, 'w') { |file| file.write(@ignore_list.to_yaml) }
     end
-
 
   end # class
 

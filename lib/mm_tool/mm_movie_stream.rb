@@ -11,33 +11,38 @@ module MmTool
     require 'mm_tool/mm_movie'
 
     #------------------------------------------------------------
-    # Given an MmMovie, this class method returns an array
-    # of streams.
+    # Given an array of related files, this class method returns
+    # an array of MmMovieStreams reflecting the streams present
+    # in each of them.
     #------------------------------------------------------------
-    def self.streams(from_movie:)
-      unless from_movie.class == MmTool::MmMovie
-        raise Exception.new "Error: parameter must be an MmTool::MmMovie instance."
+    def self.streams(with_files:)
+      # Arrays are passed around by reference; when this array is created and
+      # used as a reference in each stream, and *also* returned from this class
+      # method, everyone will still be using the same reference. It's important
+      # below to build up this array without replacing it with another instance.
+      streams = []
+      with_files.each_with_index do |path, i|
+        ff_movie = FFMPEG::Movie.new(path)
+        ff_movie.metadata[:streams].each do |stream|
+          streams << MmMovieStream.new(stream_data: stream, source_file: path, file_number: i, streams_ref: streams)
+        end
       end
-      from_movie.ff_movie.metadata[:streams].collect do |stream|
-        MmMovieStream.new(with_data: stream, from_movie: from_movie)
-      end
+      streams
     end
 
     #------------------------------------------------------------
-    # Define and setup instance variables.
+    # Initialize
     #------------------------------------------------------------
-    def initialize(with_data:, from_movie:)
-      unless from_movie.class == MmTool::MmMovie
-        raise Exception.new "Error: parameter must be an MmTool::MmMovie instance."
-      end
-      @data        = with_data
-      @owner       = from_movie
-      @file_number = 0
-      @source_file = from_movie.ff_movie.path
+    def initialize(stream_data:, source_file:, file_number:, streams_ref:)
+      @defaults    = MmUserDefaults.shared_user_defaults
+      @data        = stream_data
+      @source_file = source_file
+      @file_number = file_number
+      @streams     = streams_ref
     end
 
     #------------------------------------------------------------
-    # Simple properties.
+    # Attribute accessors
     #------------------------------------------------------------
     attr_accessor :file_number
     attr_accessor :source_file
@@ -53,7 +58,7 @@ module MmTool
     # Property - returns the input specifier of the stream.
     #------------------------------------------------------------
     def input_specifier
-      "#{file_number}:#{index}"
+      "#{@file_number}:#{index}"
     end
 
     #------------------------------------------------------------
@@ -163,6 +168,14 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Property - returns a convenient label indicating the
+    #   recommended actions for the stream.
+    #------------------------------------------------------------
+    def action_label
+      "#{output_specifier} #{actions.select {|a| a != :interesting}.join(' ')}"
+    end
+
+    #------------------------------------------------------------
     # Property - indicates whether or not the stream is the
     #   default stream per its dispositions.
     #------------------------------------------------------------
@@ -177,133 +190,63 @@ module MmTool
     #------------------------------------------------------------
     def low_quality?
       if codec_type == 'audio'
-        channels.to_i < @owner.owner[:min_channels].to_i
+        channels.to_i < @defaults[:min_channels].to_i
       elsif codec_type == 'video'
-        coded_width.to_i < @owner.owner[:min_width].to_i
+        coded_width.to_i < @defaults[:min_width].to_i
       else
         false
       end
     end
 
     #------------------------------------------------------------
-    # Property - returns an array of actions that are suggested
-    #   for the stream based on quality, language, codec, etc.
+    # Property - stream action includes :drop?
     #------------------------------------------------------------
-    def actions
+    def drop?
+      actions.include?(:drop)
+    end
 
-      #------------------------------------------------------------
-      # Note: logic below a result of Karnaugh mapping of the
-      # selection truth table for each desired action. There's
-      # probably an excel file somewhere in the repository.
-      #------------------------------------------------------------
+    #------------------------------------------------------------
+    # Property - stream action includes :copy?
+    #------------------------------------------------------------
+    def copy?
+      actions.include?(:copy)
+    end
 
-      if @actions.nil?
-        @actions = []
+    #------------------------------------------------------------
+    # Property - stream action includes :transcode?
+    #------------------------------------------------------------
+    def transcode?
+      actions.include?(:transcode)
+    end
 
-        #––––––––––––––––––––––––––––––––––––––––––––––––––
-        # subtitle stream handler
-        #––––––––––––––––––––––––––––––––––––––––––––––––––
-        if codec_type == 'subtitle'
+    #------------------------------------------------------------
+    # Property - stream action includes :set_language?
+    #------------------------------------------------------------
+    def set_language?
+      actions.include?(:set_language)
+    end
 
-          a = @owner.owner[:keep_langs_subs].include?(language)
-          b = @owner.owner[:codecs_subs_preferred].include?(codec_name)
-          c = language.downcase == 'und'
-          d = title != nil
-
-          if (!a && !b) || (!a && !c) || (a && !b)
-            @actions |= [:drop]
-          else
-            @actions |= [:copy]
-          end
-
-          if (b && c) && (@owner.owner[:fix_undefined_language])
-            @actions |= [:set_language]
-          end
-
-          if (!a || !b || c || d)
-            @actions |= [:interesting]
-          end
-
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-          # video stream handler
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-        elsif codec_type == 'video'
-
-          a = codec_name.downcase == 'mjpeg'
-          b = @owner.owner[:codecs_video_preferred].include?(codec_name)
-          c = @owner.owner[:keep_langs_video].include?(language)
-          d = language.downcase == 'und'
-          e = title != nil
-          f = @owner.owner[:scan_type] == 'quality' && low_quality?
-
-          if (a)
-            @actions |= [:drop]
-          end
-
-          if (!a && b)
-            @actions |= [:copy]
-          end
-
-          if (!a && !b)
-            @actions |= [:transcode]
-          end
-
-          if (!a && d) && (@owner.owner[:fix_undefined_language])
-            @actions |= [:set_language]
-          end
-
-          if (a || !b || !c || d || e || f)
-            @actions |= [:interesting]
-          end
-
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-          # audio stream handler
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-        elsif codec_type == 'audio'
-
-          a = @owner.owner[:codecs_audio_preferred].include?(codec_name)
-          b = @owner.owner[:keep_langs_audio].include?(language)
-          c = language.downcase == 'und'
-          d = title != nil
-          e = @owner.owner[:scan_type] == 'quality' && low_quality?
-
-          if (!a && !b && !c) || (a && !b && !c)
-            @actions |= [:drop]
-          end
-
-          if (a && b) || (a && !b && !c)
-            @actions |= [:copy]
-          end
-
-          if (!a && !b && c) || (!a && b)
-            @actions |= [:transcode]
-          end
-
-          if (c) && (@owner.owner[:fix_undefined_language])
-            @actions |= [:set_language]
-          end
-
-          if (!a || !b || c || d || e)
-            @actions |= [:interesting]
-          end
-
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-          # other stream handler
-          #––––––––––––––––––––––––––––––––––––––––––––––––––
-        else
-          @actions |= [:drop]
-        end
-      end # if @actions.nil?
-
-      @actions
-    end # actions
+    #------------------------------------------------------------
+    # Property - stream action includes :interesting?
+    #------------------------------------------------------------
+    def interesting?
+      actions.include?(:interesting)
+    end
 
     #------------------------------------------------------------
     # Property - indicates whether or not the stream will be
     #   unique for its type at output.
     #------------------------------------------------------------
     def output_unique?
-      @owner.streams.count {|s| s.codec_type  == codec_type && !s.actions.include?(:drop) } == 1
+      @streams.count {|s| s.codec_type  == codec_type && !s.drop? } == 1
+    end
+
+    #------------------------------------------------------------
+    # Property - indicates whether or not this stream is the
+    #   only one of its type.
+    #------------------------------------------------------------
+    def one_of_a_kind?
+      @streams.count {|s| s.codec_type  == codec_type && s != self } == 0
     end
 
     #------------------------------------------------------------
@@ -311,7 +254,7 @@ module MmTool
     #   file.
     #------------------------------------------------------------
     def output_index
-      @owner.streams.select {|s| !s.actions.include?(:drop) }.index(self)
+      @streams.select {|s| !s.drop? }.index(self)
     end
 
     #------------------------------------------------------------
@@ -319,8 +262,8 @@ module MmTool
     #   stream, such as v:0 or a:2.
     #------------------------------------------------------------
     def output_specifier
-      idx = @owner.streams.select {|s| s.codec_type == codec_type && !s.actions.include?(:drop)}.index(self)
-      "#{codec_type[0]}:#{idx}"
+      idx = @streams.select {|s| s.codec_type == codec_type && !s.drop?}.index(self)
+      idx ? "#{codec_type[0]}:#{idx}" : ' ⬇ '
     end
 
     #------------------------------------------------------------
@@ -328,7 +271,12 @@ module MmTool
     #   stream.
     #------------------------------------------------------------
     def instruction_input
-      "-i \"#{source_file}\""
+      src = if @file_number == 0
+              File.join(File.dirname(@source_file), File.basename(@source_file, '.*') + @defaults[:suffix] + File.extname(@source_file))
+            else
+              @source_file
+            end
+      "-i \"#{src}\" \\"
     end
 
     #------------------------------------------------------------
@@ -336,7 +284,7 @@ module MmTool
     #   according to the action(s) determined.
     #------------------------------------------------------------
     def instruction_map
-      actions.include?(:drop) ? nil : "-map #{input_specifier} \\"
+      drop? ? nil : "-map #{input_specifier} \\"
     end
 
     #------------------------------------------------------------
@@ -344,13 +292,13 @@ module MmTool
     #   according to the action(s) determined.
     #------------------------------------------------------------
     def instruction_action
-      if actions.include?(:copy)
+      if copy?
         "-codec:#{output_specifier} copy \\"
-      elsif actions.include?(:transcode)
+      elsif transcode?
         if codec_type == 'audio'
-          encode_to = @owner.owner[:codecs_audio_preferred][0]
+          encode_to = @defaults[:codecs_audio_preferred][0]
         elsif codec_type == 'video'
-          encode_to = @owner.owner[:codecs_video_preferred][0]
+          encode_to = @defaults[:codecs_video_preferred][0]
         else
           raise Exception.new "Error: somehow the program branched where it shouldn't have."
         end
@@ -367,10 +315,10 @@ module MmTool
     def instruction_metadata
       # We only want to set fixed_lang if options allow us to fix the language,
       # and we want to set subtitle language from the filename, if applicable.
-      fixed_lang = @owner.owner[:fix_undefined_language] ? @owner.owner[:undefined_language] : nil
+      fixed_lang = @defaults[:fix_undefined_language] ? @defaults[:undefined_language] : nil
       lang = subtitle_file_language ? subtitle_file_language : fixed_lang
-      set_language = actions.include?(:set_language) ? "language=#{lang} " : nil
-      set_title = title ? "title=\"#{title}\" " : nil
+      set_language = set_language? ? "language=#{lang} " : nil
+      set_title = title  && ! @defaults[:ignore_titles] ? "title=\"#{title}\" " : nil
 
       if set_language || set_title
         "-metadata:s:#{output_specifier} #{set_language}#{set_title}\\"
@@ -394,8 +342,123 @@ module MmTool
     end
 
 
-    private
+    #============================================================
+     private
+    #============================================================
 
+
+    #------------------------------------------------------------
+    # Property - returns an array of actions that are suggested
+    #   for the stream based on quality, language, codec, etc.
+    #------------------------------------------------------------
+    def actions
+
+      #------------------------------------------------------------
+      # Note: logic below a result of Karnaugh mapping of the
+      # selection truth table for each desired action. There's
+      # probably an excel file somewhere in the repository.
+      #------------------------------------------------------------
+
+      if @actions.nil?
+        @actions = []
+
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # subtitle stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        if codec_type == 'subtitle'
+
+          a = @defaults[:keep_langs_subs]&.include?(language)
+          b = @defaults[:codecs_subs_preferred]&.include?(codec_name)
+          c = language.downcase == 'und'
+          d = title != nil && ! @defaults[:ignore_titles]
+
+          if (!a && !c) || (!b)
+            @actions |= [:drop]
+          else
+            @actions |= [:copy]
+          end
+
+          if (b && c) && (@defaults[:fix_undefined_language])
+            @actions |= [:set_language]
+          end
+
+          if (!a || !b || c || (d))
+            @actions |= [:interesting]
+          end
+
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # video stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        elsif codec_type == 'video'
+
+          a = codec_name.downcase == 'mjpeg'
+          b = @defaults[:codecs_video_preferred]&.include?(codec_name)
+          c = @defaults[:keep_langs_video]&.include?(language)
+          d = language.downcase == 'und'
+          e = title != nil && ! @defaults[:ignore_titles]
+          f = @defaults[:scan_type] == 'quality' && low_quality?
+
+          if (a)
+            @actions |= [:drop]
+          end
+
+          if (!a && b)
+            @actions |= [:copy]
+          end
+
+          if (!a && !b)
+            @actions |= [:transcode]
+          end
+
+          if (!a && d) && (@defaults[:fix_undefined_language])
+            @actions |= [:set_language]
+          end
+
+          if (a || !b || !c || d || e || f)
+            @actions |= [:interesting]
+          end
+
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        # audio stream handler
+        #––––––––––––––––––––––––––––––––––––––––––––––––––
+        elsif codec_type == 'audio'
+
+          a = @defaults[:codecs_audio_preferred]&.include?(codec_name)
+          b = @defaults[:keep_langs_audio]&.include?(language)
+          c = language.downcase == 'und'
+          d = title != nil && ! @defaults[:ignore_titles]
+          e = @defaults[:scan_type] == 'quality' && low_quality?
+
+          if (!b && !c)
+            @actions |= one_of_a_kind? ? [:set_language] : [:drop]
+          end
+
+          if (a && b) || (a && !b && c)
+            @actions |= [:copy]
+          end
+
+          if (!a && !b && c) || (!a && b)
+            @actions |= [:transcode]
+          end
+
+          if (c) && (@defaults[:fix_undefined_language])
+            @actions |= [:set_language]
+          end
+
+          if (!a || !b || c || d || e)
+            @actions |= [:interesting]
+          end
+
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+          # other stream handler
+          #––––––––––––––––––––––––––––––––––––––––––––––––––
+        else
+          @actions |= [:drop]
+        end
+      end # if @actions.nil?
+
+      @actions
+    end # actions
 
     #------------------------------------------------------------
     # Given a codec, return the ffmpeg encoder string.
@@ -419,12 +482,11 @@ module MmTool
     # otherwise return nil.
     #------------------------------------------------------------
     def subtitle_file_language
-      langs = @owner.owner[:keep_langs_subs]&.join('|')
-      lang = source_file.match(/^.*\.(#{langs})\.srt$/)
+      langs = @defaults[:keep_langs_subs]&.join('|')
+      lang = @source_file.match(/^.*\.(#{langs})\.srt$/)
       lang ? lang[1] : nil
     end
 
-  end # MmMovieStream
+  end # class
 
-
-end
+end # module
