@@ -332,7 +332,7 @@ module MmTool
     #   default disposition, if necessary.
     #------------------------------------------------------------
     def instruction_disposition
-      set_disposition = output_unique? && !default? ? "default " : nil
+      set_disposition = output_unique? && !default? && !drop? ? "default " : nil
 
       if set_disposition
         "-disposition:#{output_specifier} #{set_disposition}\\"
