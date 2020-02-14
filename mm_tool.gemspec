@@ -9,9 +9,9 @@ Gem::Specification.new do |spec|
   spec.authors     = ['Jim Derry']
   spec.email       = ['balthisar@gmail.com']
 
-  spec.summary     = 'Build complete macOS application help books using Middleman.'
-  spec.description = 'Build complete macOS application help books using Middleman.'
-  spec.homepage    = 'https://github.com/middlemac/middlemac'
+  spec.summary     = 'Curate your movie files.'
+  spec.description = 'A tool for curating your movie files.'
+  spec.homepage    = 'https://github.com/balthisar/mm_tool'
   spec.license     = 'MIT'
 
   spec.platform    = Gem::Platform::RUBY
@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
   if spec.respond_to?(:metadata)
-    spec.metadata["allowed_push_host"] = "TODO: Set to 'http://mygemserver.com'"
+    spec.metadata["allowed_push_host"] = 'https://rubygems.org'
 
     spec.metadata["homepage_uri"] = spec.homepage
     spec.metadata["source_code_uri"] = "https://github.com/balthisar/mm_tool"
