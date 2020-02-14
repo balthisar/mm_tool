@@ -109,17 +109,13 @@ module MmTool
             (s == :force)
 
           @file_count[:displayed] = @file_count[:displayed] + 1
-          if @defaults[:dump]
-            pp(movie.ff_movie)
-          else
-            output(file_name)
-            output(movie.format_table)
-            output(movie.stream_table)
-            output("#{movie.command_rename} ; \\", true)
-            output("#{movie.command_transcode} ; \\", true)
-            output(movie.command_review_post, true)
-            output("\n\n", true)
-          end
+          output(file_name)
+          output(movie.format_table)
+          output(movie.stream_table)
+          output("#{movie.command_rename} ; \\", true)
+          output("#{movie.command_transcode} ; \\", true)
+          output(movie.command_review_post, true)
+          output("\n\n", true)
         end
       end # if
     end
