@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+
+#=============================================================================
+# This module consolidates all of the classes the make up a complete MmTool
+# application, and is spread throughout several files based mostly on the
+# classes they contain.
+#=============================================================================
+module MmTool
+  require_relative '../lib/mm_tool'
+end
+
+
+#=============================================================================
+# Main
+#=============================================================================
+
+cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.shared_application)
+cli.validate_prerequisites
+cli.run(ARGV)
