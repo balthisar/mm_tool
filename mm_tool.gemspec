@@ -30,21 +30,21 @@ Gem::Specification.new do |spec|
 
 
   # Specify which files should be added to the gem when it is released.
-  spec.files         = `git ls-files`.split("\n")
+  spec.files         = `git ls-files`.split("\n").reject { |f| f == 'bin/setup' || f == 'bin/console'}
   spec.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
 
   spec.bindir        = 'bin'
-  spec.executables   = `git ls-files -- bin/*`.split("\n").map{ |f| File.basename(f) }
+  spec.executables   = `git ls-files -- bin/*`.split("\n").reject { |f| f == 'bin/setup' || f == 'bin/console'}.map{ |f| File.basename(f) }
   spec.require_paths = ['lib']
 
 
   # Additional dependencies
-  spec.add_runtime_dependency 'tty'
+  spec.add_runtime_dependency 'tty', "~>0.10"
   spec.add_runtime_dependency 'streamio-ffmpeg'
   spec.add_runtime_dependency 'bytesize'
 
   # Development dependencies
-  spec.add_development_dependency "bundler", "~> 1.17"
-  spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency "bundler", "~> 1.17.3"
+  spec.add_development_dependency "rake"
   spec.add_development_dependency 'git'
 end

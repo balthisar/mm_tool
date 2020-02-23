@@ -58,8 +58,17 @@ module MmTool
     # Indicates whether any of the streams are of a lower
     # quality than desired by the user.
     #------------------------------------------------------------
-    def low_quality?
+    def has_low_quality_streams?
       @streams.count {|stream| stream.low_quality?} > 0
+    end
+
+    #------------------------------------------------------------
+    # Indicates whether or not a file has at least one high-
+    # quality video stream and high-quality audio stream.
+    #------------------------------------------------------------
+    def meets_minimum_quality?
+      @streams.count {|stream| stream.codec_type == 'audio' && !stream.low_quality? } > 0 &&
+          @streams.count {|stream| stream.codec_type == 'video' && !stream.low_quality? } > 0
     end
 
     #------------------------------------------------------------
@@ -122,7 +131,10 @@ module MmTool
       @streams.each {|stream| command << "   #{stream.instruction_map}" if stream.instruction_map }
       @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
       @streams.each {|stream| command << "   #{stream.instruction_disposition}" if stream.instruction_disposition }
-      @streams.each {|stream| command << "   #{stream.instruction_metadata}" if stream.instruction_metadata }
+      @streams.each do |stream|
+        stream.instruction_metadata.each { |instruction| command << "   #{instruction}" }
+      end
+
       command << "   -metadata title=\"#{format_title}\" \\" if format_title
       command << "   \"#{output_path}\""
       command.join("\n")

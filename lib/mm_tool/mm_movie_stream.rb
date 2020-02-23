@@ -309,22 +309,21 @@ module MmTool
     end
 
     #------------------------------------------------------------
-    # Property - returns an instruction for setting the metadata
+    # Property - returns instructions for setting the metadata
     #   of the stream, if necessary.
     #------------------------------------------------------------
     def instruction_metadata
+      return [] if @actions.include?(:drop)
+
       # We only want to set fixed_lang if options allow us to fix the language,
       # and we want to set subtitle language from the filename, if applicable.
       fixed_lang = @defaults[:fix_undefined_language] ? @defaults[:undefined_language] : nil
       lang = subtitle_file_language ? subtitle_file_language : fixed_lang
-      set_language = set_language? ? "language=#{lang} " : nil
-      set_title = title  && ! @defaults[:ignore_titles] ? "title=\"#{title}\" " : nil
 
-      if set_language || set_title
-        "-metadata:s:#{output_specifier} #{set_language}#{set_title}\\"
-      else
-        nil
-      end
+      result = []
+      result << "-metadata:s:#{output_specifier} language=#{lang} \\" if set_language?
+      result << "-metadata:s:#{output_specifier} title=\"#{title}\" \\" if title  && ! @defaults[:ignore_titles]
+      result
     end
 
     #------------------------------------------------------------

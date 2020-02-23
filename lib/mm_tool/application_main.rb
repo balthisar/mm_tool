@@ -53,12 +53,10 @@ module MmTool
       <<~HEREDOC
         #!/bin/sh
 
-        # Check this file, make any changes, and save it. It will be executed as soon
-        # as you close it. By default, this script will exit per the exit command
-        # below. Please further confirm that you wish to proceed with the proposed
-        # actions by commenting or removing the line below.
-        
-        exit 1
+        # Check this file, make any changes, and save it. Execute it directly,
+        # or execute it with the sh command if it's not executable.
+
+        set -e
 
       HEREDOC
     end
@@ -97,15 +95,15 @@ module MmTool
       else
         @file_count[:processed] = @file_count[:processed] + 1
         movie = MmMovie.new(with_file: file_name)
-        a = movie.interesting?
+        a = movie.interesting? # already interesting if low-quality, but separate quality check made for logic, below.
         b = MmMovieIgnoreList.shared_ignore_list.include?(file_name)
-        c = movie.low_quality?
+        c = movie.meets_minimum_quality?
         s = @defaults[:scan_type]&.to_sym
 
-        if (s == :normal && a && !b && !c) ||
+        if (s == :normal && a && !b && c) ||
             (s == :all && !b) ||
             (s == :flagged && b) ||
-            (s == :quality && c ) ||
+            (s == :quality && !c ) ||
             (s == :force)
 
           @file_count[:displayed] = @file_count[:displayed] + 1

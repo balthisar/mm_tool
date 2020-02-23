@@ -173,6 +173,7 @@ module MmTool
 
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"
+          exit 0
 
         when '--'
           break

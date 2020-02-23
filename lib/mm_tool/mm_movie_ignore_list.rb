@@ -52,7 +52,7 @@ module MmTool
     def add(path:)
       new_list = @ignore_list |= [path]
       @ignore_list = new_list.sort
-      File.open(file_path, 'w') { |file| file.write(@ignore_list.to_yaml) }
+      File.open(file_path, 'w') { |file| file.write(@ignore_list.to_yaml(options = {:line_width => -1})) }
     end
 
     #------------------------------------------------------------
@@ -60,7 +60,7 @@ module MmTool
     #------------------------------------------------------------
     def remove(path:)
       @ignore_list.delete(path)
-      File.open(file_path, 'w') { |file| file.write(@ignore_list.to_yaml) }
+      File.open(file_path, 'w') { |file| file.write(@ignore_list.to_yaml(options = {:line_width => -1})) }
     end
 
   end # class
