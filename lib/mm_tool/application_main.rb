@@ -88,24 +88,24 @@ module MmTool
     #------------------------------------------------------------
     def run_loop(file_name)
 
-      if @defaults[:ignore_files]
+      if @defaults[:ignore_titles]
         MmMovieIgnoreList.shared_ignore_list.add(path: file_name)
         output("Note: added #{file_name} to the list of files to be ignored.")
-      elsif @defaults[:unignore_files]
+      elsif @defaults[:ignore_titles]
         MmMovieIgnoreList.shared_ignore_list.remove(path: file_name)
         output("Note: removed #{file_name} to the list of files to be ignored.")
       else
         @file_count[:processed] = @file_count[:processed] + 1
         movie = MmMovie.new(with_file: file_name)
-        a = movie.interesting?
+        a = movie.interesting? # already interesting if low-quality, but separate quality check made for logic, below.
         b = MmMovieIgnoreList.shared_ignore_list.include?(file_name)
-        c = movie.low_quality?
+        c = movie.meets_minimum_quality?
         s = @defaults[:scan_type]&.to_sym
 
-        if (s == :normal && a && !b && !c) ||
+        if (s == :normal && a && !b && c) ||
             (s == :all && !b) ||
             (s == :flagged && b) ||
-            (s == :quality && c ) ||
+            (s == :quality && !c ) ||
             (s == :force)
 
           @file_count[:displayed] = @file_count[:displayed] + 1

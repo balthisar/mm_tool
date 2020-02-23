@@ -58,8 +58,17 @@ module MmTool
     # Indicates whether any of the streams are of a lower
     # quality than desired by the user.
     #------------------------------------------------------------
-    def low_quality?
+    def has_low_quality_streams?
       @streams.count {|stream| stream.low_quality?} > 0
+    end
+
+    #------------------------------------------------------------
+    # Indicates whether or not a file has at least one high-
+    # quality video stream and high-quality audio stream.
+    #------------------------------------------------------------
+    def meets_minimum_quality?
+      @streams.count {|stream| stream.codec_type == 'audio' && !stream.low_quality? } > 0 &&
+          @streams.count {|stream| stream.codec_type == 'video' && !stream.low_quality? } > 0
     end
 
     #------------------------------------------------------------

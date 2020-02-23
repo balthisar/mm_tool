@@ -320,7 +320,7 @@ module MmTool
       set_language = set_language? ? "language=#{lang} " : nil
       set_title = title  && ! @defaults[:ignore_titles] ? "title=\"#{title}\" " : nil
 
-      if set_language || set_title
+      if (set_language || set_title) && !@actions.include?(:drop)
         "-metadata:s:#{output_specifier} #{set_language}#{set_title}\\"
       else
         nil
