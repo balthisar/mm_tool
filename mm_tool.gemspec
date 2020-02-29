@@ -45,6 +45,6 @@ Gem::Specification.new do |spec|
 
   # Development dependencies
   spec.add_development_dependency "bundler", "~> 1.17"
-  spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency 'git'
 end
