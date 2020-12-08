@@ -38,3 +38,7 @@ remuxing, and re-encoding media libraries.
 - 0.1.3
 
   - Natural sort order for directories with numbers, e.g., Season 1, … Season 19, Season 20.
+
+- 0.1.4
+
+  - Hot fix.
