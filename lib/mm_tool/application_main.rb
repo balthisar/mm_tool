@@ -6,6 +6,7 @@ module MmTool
   class ApplicationMain
 
     require 'mm_tool.rb'
+    require 'natural_sort'
 
     #------------------------------------------------------------
     # Attributes
@@ -146,8 +147,10 @@ module MmTool
 
         extensions = @defaults[:container_files]&.join(',')
         Dir.chdir(file_or_dir) do
-          Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort.each do |file|
-            run_loop(file)
+          # Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort.each do |file|
+          Dir.glob("**/*.{#{extensions}}").map {|path| File.expand_path(path) }.sort(&NaturalSort).each do |file|
+            output(file)
+            # run_loop(file)
           end
         end
 
