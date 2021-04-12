@@ -3,18 +3,28 @@ lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "mm_tool/version"
 
+
+# We should work with any 2.0 version of Ruby, but I'm no longer testing them
+# for regressions. Version 2.6.0 goes back to December 2018, and is a suitable
+# minimum version.
+
+#rb_needed = ['~> 2.0']
+
+
 Gem::Specification.new do |spec|
-  spec.name        = 'mm_tool'
-  spec.version     = MmTool::VERSION
-  spec.authors     = ['Jim Derry']
-  spec.email       = ['balthisar@gmail.com']
 
-  spec.summary     = 'Curate your movie files.'
-  spec.description = 'A tool for curating your movie files.'
-  spec.homepage    = 'https://github.com/balthisar/mm_tool'
-  spec.license     = 'MIT'
+#  spec.required_ruby_version = rb_needed
+  spec.name                  = 'mm_tool'
+  spec.version               = MmTool::VERSION
+  spec.authors               = ['Jim Derry']
+  spec.email                 = ['balthisar@gmail.com']
 
-  spec.platform    = Gem::Platform::RUBY
+  spec.summary               = 'Curate your movie files.'
+  spec.description           = 'A tool for curating your movie files.'
+  spec.homepage              = 'https://github.com/balthisar/mm_tool'
+  spec.license               = 'MIT'
+
+  spec.platform              = Gem::Platform::RUBY
 
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
@@ -39,13 +49,17 @@ Gem::Specification.new do |spec|
 
 
   # Additional dependencies
-  spec.add_runtime_dependency 'tty', "~>0.10"
+  spec.add_runtime_dependency 'tty-table', "~>0.10"
+  spec.add_runtime_dependency 'tty-command', "~>0.10"
+  spec.add_runtime_dependency 'tty-which', "~>0.4"
+
   spec.add_runtime_dependency 'streamio-ffmpeg'
   spec.add_runtime_dependency 'bytesize'
   spec.add_runtime_dependency 'natural_sort', "0.3.0"
 
   # Development dependencies
-  spec.add_development_dependency "bundler", "~> 1.17.3"
+  spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake"
   spec.add_development_dependency 'git'
+  
 end

@@ -72,7 +72,7 @@ module MmTool
       info_table_src << ["Disposition Columns:", MmMovie.dispositions.join(', ')]
       info_table_src << ["Transcode File Location:", self.tempfile ? tempfile&.path : 'n/a']
 
-      info_table = C.bold("Looking for file(s) and processing them with the following options:\n")
+      info_table = C.bold("Looking for file(s) and processing them with the following options:\n").dup
       info_table << info_table_src.render(:basic) do |renderer|
         a = @defaults.label_value_pairs.map {|p| p[0].length }.max + 1
         b = OutputHelper.console_width - a - 2
