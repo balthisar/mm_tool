@@ -111,6 +111,7 @@ module MmTool
           output(file_name)
           output(movie.format_table)
           output(movie.stream_table)
+          output("echo '#{File.basename(file_name)}' ; \\", true)
           output("#{movie.command_rename} ; \\", true)
           output("#{movie.command_transcode} ; \\", true)
           output(movie.command_review_post, true)

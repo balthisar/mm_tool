@@ -127,6 +127,9 @@ module MmTool
     #------------------------------------------------------------
     def command_transcode
       command = ["ffmpeg \\"]
+      command << "   -hide_banner \\"
+      command << "   -loglevel error \\"
+      command << "   -stats \\"
       @streams.each {|stream| command |= ["   #{stream.instruction_input}"] if stream.instruction_input }
       @streams.each {|stream| command << "   #{stream.instruction_map}" if stream.instruction_map }
       @streams.each {|stream| command << "   #{stream.instruction_action}" if stream.instruction_action }
