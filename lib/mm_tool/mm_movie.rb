@@ -148,7 +148,7 @@ module MmTool
     # running the transcode command
     #------------------------------------------------------------
     def command_review_post
-      "\"#{$0}\" --no-use-external-subs \"#{output_path}\""
+      "\"#{$0}\" -is --no-use-external-subs \"#{output_path}\""
     end
 
 

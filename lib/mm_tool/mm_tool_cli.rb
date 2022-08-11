@@ -106,23 +106,27 @@ module MmTool
             case char
 
             when 'h'
-              args.insert(1, "--help")
+              args.insert(1, '--help')
             when 'i'
-              args.insert(1, "--no-info-header")
+              args.insert(1, '--no-info-header')
             when 'I'
               args.insert(1, '--info-header')
+            when 's'
+              args.insert(1, '--no-shell-commands')
+            when 'S'
+              args.insert(1, '--shell-commands')
             when 't'
-              args.insert(1, "--transcode")
+              args.insert(1, '--transcode')
             when 'T'
-              args.insert(1, "--no-transcode")
+              args.insert(1, '-no-transcode')
             when 'u'
-              args.insert(1, "--no-fix-undefined-language")
+              args.insert(1, '--no-fix-undefined-language')
             when 'U'
-              args.insert(1, "--fix-undefined-language")
+              args.insert(1, '--fix-undefined-language')
             when 'p'
-              args.insert(1, "--dump")
+              args.insert(1, '--dump')
             when 'P'
-              args.insert(1, "--no-dump")
+              args.insert(1, '--no-dump')
             else
               OutputHelper.print_error_and_exit("Error: option #{C.bold(args[0])} was specified, but I don't know what that means.")
             end
@@ -170,6 +174,12 @@ module MmTool
 
         when '--info-header'
           @defaults[:info_header] = true
+
+        when '--no-shell-commands'
+          @defaults[:shell_commands] = false
+
+        when '--shell-commands'
+          @defaults[:shell_commands] = true
 
         when '--version'
           puts "#{File.basename $0}, version #{MmTool::VERSION}"

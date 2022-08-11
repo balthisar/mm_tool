@@ -88,6 +88,19 @@ module MmTool
           HEREDOC
       },
 
+      :shell_commands => {
+          :default    => true,
+          :value      => nil,
+          :arg_short  => '-s',
+          :arg_long   => '--no-shell-commands',
+          :arg_format => nil,
+          :item_label => nil,
+          :help_group => 'Main Options',
+          :help_desc  => <<~HEREDOC
+                Don't show the shell commands that should be executed at the end of the output. Good for showing the table only.
+          HEREDOC
+      },
+
       :version => {
           :default    => false,
           :value      => nil,
