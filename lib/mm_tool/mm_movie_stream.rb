@@ -465,7 +465,7 @@ module MmTool
     def encoder_string(for_codec:)
       case for_codec.downcase
       when 'hevc'
-        "libx265 -crf 28 -x265-params log-level=error"
+        "libx265 -crf 28 -x265-params log-level=error -force_key_frames chapters"
       when 'h264'
         "libx264 -crf 23"
       when 'aac'
