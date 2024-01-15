@@ -356,6 +356,22 @@ module MmTool
           HEREDOC
       },
 
+      :encoder => {
+        :default    => 'auto',
+        :value      => nil,
+        :arg_short  => nil,
+        :arg_long   => '--encoder',
+        :arg_format => nil,
+        :item_label => 'Specify Non-default Encoder',
+        :help_group => 'Transcoding Options',
+        :help_desc  => <<~HEREDOC
+                You can use #{C.bold('--encoder')} to specify the encoder to use when mm_tool determines that
+                transcoding should take place. Use one of ENCODER_LIST, or #{C.bold('auto')}. The default is
+                #{C.bold('%s')}. Note that #{C.bold('auto')} will choose #{C.bold('libx264')} or
+                #{C.bold('libx265')}, depending on the value of #{C.bold('--codecs-video-preferred')}.
+        HEREDOC
+      },
+
       #----------------------------
       # Quality Options
       #----------------------------

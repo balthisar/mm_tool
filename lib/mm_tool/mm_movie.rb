@@ -27,7 +27,7 @@ module MmTool
     #------------------------------------------------------------
     def initialize(with_file:)
       @defaults        = MmUserDefaults.shared_user_defaults
-      @streams         = MmMovieStream::streams(with_files: all_paths(with_file: with_file))
+      @streams         = MmMovieStream::streams(with_files: all_paths(with_file: with_file), owner_ref: self)
       @format_metadata = FFMPEG::Movie.new(with_file).metadata[:format]
     end
 
@@ -45,6 +45,21 @@ module MmTool
     def format_size
       size = @format_metadata[:size]
       size ? ByteSize.new(size) : 'unknown'
+    end
+
+    #------------------------------------------------------------
+    # Get the file-level 'bitrate' metadata.
+    #------------------------------------------------------------
+    def format_bitrate
+      size = @format_metadata[:bit_rate]
+      ByteSize.new(size).to_kb.to_i.to_s + "K"
+    end
+
+    #------------------------------------------------------------
+    # Get the file-level 'bitrate' metadata.
+    #------------------------------------------------------------
+    def raw_bitrate
+      @format_metadata[:bit_rate].to_i
     end
 
     #------------------------------------------------------------
@@ -84,7 +99,7 @@ module MmTool
     def format_table
       unless @format_table
         @format_table = format_table_datasource.render(:basic) do |renderer|
-          renderer.column_widths = [10,10, 160]
+          renderer.column_widths = [10,10,10,160]
           renderer.multiline     = true
           renderer.padding       = [0,1]
           renderer.width         = 1000
@@ -192,8 +207,8 @@ module MmTool
     #------------------------------------------------------------
     def format_table_datasource
       unless @format_table
-        @format_table = TTY::Table.new(header: %w(Duration: Size: Title:))
-        @format_table << [format_duration, format_size, format_title]
+        @format_table = TTY::Table.new(header: %w(Duration: Size: Bitrate: Title:))
+        @format_table << [format_duration, format_size, format_bitrate, format_title]
       end
       @format_table
     end

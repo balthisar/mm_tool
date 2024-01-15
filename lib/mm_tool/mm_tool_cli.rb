@@ -12,6 +12,11 @@ module MmTool
     # Initialize
     #------------------------------------------------------------
     def initialize(app_instance = MmTool::ApplicationMain.shared_application)
+      self.validate_prerequisites
+
+      decorated_list = MmTool.encoder_list.map{|s| C.bold(s)}.join(', ')
+      USER_DEFAULTS[:encoder][:help_desc].gsub!('ENCODER_LIST', decorated_list)
+
       @application = app_instance
       @defaults = MmUserDefaults.shared_user_defaults
       @defaults.register_defaults(with_hash: USER_DEFAULTS)
@@ -58,10 +63,10 @@ module MmTool
     #------------------------------------------------------------
     #noinspection RubyResolve
     def validate_prerequisites
-      commands = %w(ffmpeg)
-      codecs   = %w(libx264 libx265 libfdk_aac)
-      task     = TTY::Command.new(printer: :null)
-      success  = true
+      commands        = %w(ffmpeg ffprobe)
+      codecs_required = %w(libx264 libx265 libfdk_aac)
+      task            = TTY::Command.new(printer: :null)
+      success         = true
 
       # We'll check everything in items before failing, so that we can provide
       # a comprehensive list to the user. No one wants to see what's missing
@@ -74,17 +79,17 @@ module MmTool
       end
       exit 1 unless success
 
-      # Now we'll make sure that all of the codecs that we're interested in
-      # are installed as part of ffmpeg. This is necessary because not every
-      # binary distribution supports non-free.
+      # Now we'll make sure that all of the required codecs are installed as part of ffmpeg.
+      # This is necessary because not every binary distribution supports non-free.
 
       # Again, we'll check them all before failing in order to list everything.
-      codecs.each do |codec|
+      codecs_required.each do |codec|
         result = task.run!("ffprobe -v quiet -codecs | grep #{codec}")
         OutputHelper.print_error("Error: ffmpeg was built without support for the #{C.bold(codec)} codec, which is required.") if result.failure?
         success = success && result.success?
       end
       exit 1 unless success
+
     end
 
     #------------------------------------------------------------
@@ -271,6 +276,9 @@ module MmTool
         when '--fix-undefined-language'
           @defaults[:fix_undefined_language] = true
 
+        when '--encoder'
+          @defaults[:encoder] = validate_encoder_value(args[0], args[1])
+
           #-----------------------
           # Quality
           #-----------------------
@@ -324,6 +332,23 @@ module MmTool
         OutputHelper.print_error_and_exit("Error: option #{C.bold(arg)} was specified, but no value was given.")
       elsif value =~ /^-.*$/
         OutputHelper.print_error_and_exit("Error: option #{C.bold(arg)} was specified, but the value #{C.bold(value)} looks like another option argument.")
+      end
+      value
+    end
+
+    #------------------------------------------------------------
+    # Perform a really simple validation of the given value for
+    # the given argument, returning the value if successful.
+    # ------------------------------------------------------------
+    #noinspection RubyResolve
+    def validate_encoder_value(arg, value)
+      if !value
+        OutputHelper.print_error_and_exit("Error: option #{C.bold(arg)} was specified, but no value was given.")
+      elsif value =~ /^-.*$/
+        OutputHelper.print_error_and_exit("Error: option #{C.bold(arg)} was specified, but the value #{C.bold(value)} looks like another option argument.")
+      end
+      unless MmTool.encoder_list.include?(value)
+        OutputHelper.print_error_and_exit("Error: Unknown encoder #{C.bold(value)} specified for option #{C.bold(arg)}. Use #{C.bold(File.basename($0) << '--help')} for supported encoders.")
       end
       value
     end

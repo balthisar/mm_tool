@@ -15,5 +15,4 @@ end
 #=============================================================================
 
 cli = MmTool::MmToolCli.new(MmTool::ApplicationMain.shared_application)
-cli.validate_prerequisites
 cli.run(ARGV)

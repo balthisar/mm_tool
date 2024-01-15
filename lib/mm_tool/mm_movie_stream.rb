@@ -15,7 +15,7 @@ module MmTool
     # an array of MmMovieStreams reflecting the streams present
     # in each of them.
     #------------------------------------------------------------
-    def self.streams(with_files:)
+    def self.streams(with_files:, owner_ref:)
       # Arrays are passed around by reference; when this array is created and
       # used as a reference in each stream, and *also* returned from this class
       # method, everyone will still be using the same reference. It's important
@@ -24,7 +24,7 @@ module MmTool
       with_files.each_with_index do |path, i|
         ff_movie = FFMPEG::Movie.new(path)
         ff_movie.metadata[:streams].each do |stream|
-          streams << MmMovieStream.new(stream_data: stream, source_file: path, file_number: i, streams_ref: streams)
+          streams << MmMovieStream.new(stream_data: stream, source_file: path, file_number: i, streams_ref: streams, owner_ref: owner_ref)
         end
       end
       streams
@@ -33,12 +33,13 @@ module MmTool
     #------------------------------------------------------------
     # Initialize
     #------------------------------------------------------------
-    def initialize(stream_data:, source_file:, file_number:, streams_ref:)
+    def initialize(stream_data:, source_file:, file_number:, streams_ref:, owner_ref:)
       @defaults    = MmUserDefaults.shared_user_defaults
       @data        = stream_data
       @source_file = source_file
       @file_number = file_number
       @streams     = streams_ref
+      @owner_ref   = owner_ref
     end
 
     #------------------------------------------------------------
@@ -463,13 +464,47 @@ module MmTool
     # Given a codec, return the ffmpeg encoder string.
     #------------------------------------------------------------
     def encoder_string(for_codec:)
+
+      # If we have to use bitrate for controlling quality, we want to ensure that we don't
+      # exceed the current bitrate, which would be a lossy conversion to a larger file.
+      # This only applies to videotoolbox on Intel. We'll use constant quality for everything else.
+      # Pretty much, we don't want to use videotoolbox on macOS. Hey? Why can't we use qsv on macOS?
+      rate_h264 = (@owner_ref.raw_bitrate * 0.750).to_i
+      rate_h265 = (@owner_ref.raw_bitrate * 0.500).to_i
+
+      string_h264 = ByteSize.new(rate_h264).to_kb.to_i.to_s + "K"
+      string_h265 = ByteSize.new(rate_h265).to_kb.to_i.to_s + "K"
+
+      # Constant quality mode is only available for Apple Silicon!
+      # Can't use -q:v 65 without Apple Silicon.
+      # Have to use -b:v 6000K (for example) on Intel.
+      # HEVC doesn't seem to work on Intel without -pix_fmt yuv420p10le.
+      encoder_strings = {
+        :libx264           => "libx264 -crf 23 -force_key_frames chapters",
+        :libx265           => "libx265 -crf 28 -x265-params log-level=error -force_key_frames chapters",
+        :h264_qsv          => "h264_qsv -global_quality 22 -lookahead 1 -force_key_frames chapters",
+        :hevc_qsv          => "hevc_qsv -global_quality 22 -lookahead 1 -force_key_frames chapters",
+        :h264_videotoolbox => "h264_videotoolbox -b:v #{string_h264} -force_key_frames chapters",
+        :hevc_videotoolbox => "hevc_videotoolbox -b:v #{string_h265} -pix_fmt yuv420p10le -force_key_frames chapters"
+      }
+      if RUBY_PLATFORM.downcase.start_with?('arm64')
+        encoder_strings[:h264_videotoolbox] = "h264_videotoolbox -q:v 50 -force_key_frames chapters"
+        encoder_strings[:hevc_videotoolbox] = "hevc_videotoolbox -q:v 50 -force_key_frames chapters"
+      end
+
+      encoder = @defaults[:encoder].to_sym
+
       case for_codec.downcase
       when 'hevc'
-        "libx265 -crf 28 -x265-params log-level=error -force_key_frames chapters"
+        return encoder_strings[:libx265] if [:auto, :libx265].include?(encoder)
+        return encoder_strings[:hevc_qsv] if encoder == :hevc_qsv
+        return encoder_strings[:hevc_videotoolbox] if encoder == :hevc_videotoolbox
       when 'h264'
-        "libx264 -crf 23"
+        return encoder_strings[:libx264] if [:auto, :libx264].include?(encoder)
+        return encoder_strings[:h264_qsv] if encoder == :h264_qsv
+        return encoder_strings[:h264_videotoolbox] if encoder == :h264_videotoolbox
       when 'aac'
-        "libfdk_aac"
+        return "libfdk_aac"
       else
         raise Exception.new "Error: somehow an unsupported codec '#{for_codec}' was specified."
       end

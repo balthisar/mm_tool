@@ -1,5 +1,25 @@
 module MmTool
 
+  @@encoder_list = nil
+
+  #------------------------------------------------------------
+  # Module-level attribute provides list of installed encoders.
+  #------------------------------------------------------------
+  def self.encoder_list
+    unless @@encoder_list
+      @@encoder_list = %w()
+      codecs_allowed   = %w(libx264 libx265 h264_qsv hevc_qsv h264_videotoolbox hevc_videotoolbox)
+      task             = TTY::Command.new(printer: :null)
+
+      codecs_allowed.each do |codec|
+        result = task.run!("ffprobe -v quiet -codecs | grep #{codec}")
+        @@encoder_list << codec unless result.failure?
+      end
+    end
+    @@encoder_list
+  end
+
+
   #=============================================================================
   # The main application.
   #=============================================================================
