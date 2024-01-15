@@ -482,8 +482,8 @@ module MmTool
       encoder_strings = {
         :libx264           => "libx264 -crf 23 -force_key_frames chapters",
         :libx265           => "libx265 -crf 28 -x265-params log-level=error -force_key_frames chapters",
-        :h264_qsv          => "h264_qsv -global_quality 22 -lookahead 1 -force_key_frames chapters",
-        :hevc_qsv          => "hevc_qsv -global_quality 22 -lookahead 1 -force_key_frames chapters",
+        :h264_qsv          => "h264_qsv -global_quality 22 -look_ahead 1 -force_key_frames chapters",
+        :hevc_qsv          => "hevc_qsv -global_quality 22 -look_ahead 1 -force_key_frames chapters",
         :h264_videotoolbox => "h264_videotoolbox -b:v #{string_h264} -force_key_frames chapters",
         :hevc_videotoolbox => "hevc_videotoolbox -b:v #{string_h265} -pix_fmt yuv420p10le -force_key_frames chapters"
       }
