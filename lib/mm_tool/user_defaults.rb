@@ -378,7 +378,7 @@ module MmTool
         :arg_short  => nil,
         :arg_long   => '--re-encode',
         :arg_format => nil,
-        :item_label => "Re-encode the video stream, even if it wouldn't otherwise be required.",
+        :item_label => "Force Re-encode",
         :help_group => 'Transcoding Options',
         :help_desc  => <<~HEREDOC
                 Use #{C.bold('--re-encode')} to force re-encoding of the file, even if it isn't necessary.

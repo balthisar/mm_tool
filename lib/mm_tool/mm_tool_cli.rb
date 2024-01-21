@@ -283,7 +283,7 @@ module MmTool
           @defaults[:reencode] = true
 
         when '--no-re-encode'
-          @defaults[:reencode] = true
+          @defaults[:reencode] = false
 
           #-----------------------
           # Quality
