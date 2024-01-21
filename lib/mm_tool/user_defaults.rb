@@ -372,6 +372,20 @@ module MmTool
         HEREDOC
       },
 
+      :reencode => {
+        :default    => 'false',
+        :value      => nil,
+        :arg_short  => nil,
+        :arg_long   => '--re-encode',
+        :arg_format => nil,
+        :item_label => "Re-encode the video stream, even if it wouldn't otherwise be required.",
+        :help_group => 'Transcoding Options',
+        :help_desc  => <<~HEREDOC
+                Use #{C.bold('--re-encode')} to force re-encoding of the file, even if it isn't necessary.
+                Use #{C.bold('--no-re-encode')} if you need to undo the option for subsequent input files.
+        HEREDOC
+      },
+
       #----------------------------
       # Quality Options
       #----------------------------

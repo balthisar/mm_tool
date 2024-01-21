@@ -397,16 +397,17 @@ module MmTool
           d = language.downcase == 'und'
           e = title != nil && ! @defaults[:ignore_titles]
           f = @defaults[:scan_type] == 'quality' && low_quality?
+          g = @defaults[:reencode] == true
 
           if (a)
             @actions |= [:drop]
           end
 
-          if (!a && b)
+          if (!a && b && !g)
             @actions |= [:copy]
           end
 
-          if (!a && !b)
+          if (!a && !b) || (g)
             @actions |= [:transcode]
           end
 
@@ -414,7 +415,7 @@ module MmTool
             @actions |= [:set_language]
           end
 
-          if (a || !b || !c || d || e || f)
+          if (a || !b || !c || d || e || f || g)
             @actions |= [:interesting]
           end
 

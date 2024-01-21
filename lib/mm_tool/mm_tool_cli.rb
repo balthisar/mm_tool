@@ -279,6 +279,12 @@ module MmTool
         when '--encoder'
           @defaults[:encoder] = validate_encoder_value(args[0], args[1])
 
+        when '--re-encode'
+          @defaults[:reencode] = true
+
+        when '--no-re-encode'
+          @defaults[:reencode] = true
+
           #-----------------------
           # Quality
           #-----------------------
