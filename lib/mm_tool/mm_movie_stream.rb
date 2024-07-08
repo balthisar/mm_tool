@@ -120,6 +120,14 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Property - returns the metadata indicating whether or not
+    #   mm_tool has previously encoded this stream.
+    #------------------------------------------------------------
+    def mm_tool_encoded_stream
+      @data&.dig(:tags, :MM_TOOL_ENCODED_STREAM)&.downcase == 'true'
+    end
+
+    #------------------------------------------------------------
     # Property - returns the title of the stream, or nil.
     #------------------------------------------------------------
     def title
@@ -211,6 +219,13 @@ module MmTool
     #------------------------------------------------------------
     def copy?
       actions.include?(:copy)
+    end
+
+    #------------------------------------------------------------
+    # Property - Is the stream copy only? No other modifications?
+    #------------------------------------------------------------
+    def copy_only?
+      (actions - [:copy, :interesting]).empty?
     end
 
     #------------------------------------------------------------
@@ -324,6 +339,11 @@ module MmTool
       result = []
       result << "-metadata:s:#{output_specifier} language=#{lang} \\" if set_language?
       result << "-metadata:s:#{output_specifier} title=\"#{title}\" \\" if title  && ! @defaults[:ignore_titles]
+
+      if @defaults[:containers_preferred][0].downcase == 'mkv'
+        result << "-metadata:s:#{output_specifier} MM_TOOL_ENCODED_STREAM=\"true\" \\" if @actions.include?(:transcode)
+      end
+
       result
     end
 

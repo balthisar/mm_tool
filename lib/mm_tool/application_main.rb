@@ -180,6 +180,7 @@ module MmTool
         exit 1
       end
 
+      output("Transcode File Location: #{tempfile&.path}") if @tempfile
       output("#{File.basename($0)} processed #{@file_count[:processed]} files and displayed data for #{@file_count[:displayed]} of them.")
 
     ensure
