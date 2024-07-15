@@ -125,10 +125,10 @@ module MmTool
     def format_table
       unless @format_table
         @format_table = format_table_datasource.render(:basic) do |renderer|
-          renderer.column_widths = [10,10,10,18,16,160]
+          renderer.column_widths = [10,10,10,12,10,123]
           renderer.multiline     = true
           renderer.padding       = [0,1]
-          renderer.width         = 1000
+          renderer.width         = 192
         end
       end
       @format_table
@@ -145,7 +145,7 @@ module MmTool
           renderer.column_widths = [5,10,10,5,10,5,23,50,8,35]
           renderer.multiline     = true
           renderer.padding       = [0,1]
-          renderer.width         = 1000
+          renderer.width         = 192
         end # do
       end
       @stream_table
@@ -238,7 +238,7 @@ module MmTool
     #------------------------------------------------------------
     def format_table_datasource
       unless @format_table
-        @format_table = TTY::Table.new(header: ['Duration:', 'Size:', 'Bitrate:', 'mm_tool encoded:', 'mm_tool wrote:', 'Title:'])
+        @format_table = TTY::Table.new(header: ['Duration:', 'Size:', 'Bitrate:', 'mm_encoded:', 'mm_wrote:', 'Title:'])
         @format_table << [format_duration, format_size, format_bitrate, format_mm_tool_encoded, format_mm_tool_written, format_title]
       end
       @format_table
