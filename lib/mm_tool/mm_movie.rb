@@ -70,6 +70,20 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Get the file-level 'MM_TOOL_ENCODED' metadata.
+    #------------------------------------------------------------
+    def format_mm_tool_encoded
+      @format_metadata&.dig(:tags, :MM_TOOL_ENCODED)&.downcase == 'true'
+    end
+
+    #------------------------------------------------------------
+    # Get the file-level 'MM_TOOL_WRITTEN' metadata.
+    #------------------------------------------------------------
+    def format_mm_tool_written
+      @format_metadata&.dig(:tags, :MM_TOOL_WRITTEN)&.downcase == 'true'
+    end
+
+    #------------------------------------------------------------
     # Indicates whether any of the streams are of a lower
     # quality than desired by the user.
     #------------------------------------------------------------
@@ -94,15 +108,27 @@ module MmTool
     end
 
     #------------------------------------------------------------
+    # Indicates whether any of the streams are to be modified
+    # in any form.
+    #------------------------------------------------------------
+    def modify_streams?
+      number_of_copy_only = @streams.count {|stream| stream.copy_only?}
+      number_of_streams = @streams.count
+      number_of_streams > number_of_copy_only
+      # result = @streams.count {|stream| stream.copy_only?} < @streams.count
+      # result
+    end
+
+    #------------------------------------------------------------
     # Get the rendered text of the format_table.
     #------------------------------------------------------------
     def format_table
       unless @format_table
         @format_table = format_table_datasource.render(:basic) do |renderer|
-          renderer.column_widths = [10,10,10,160]
+          renderer.column_widths = [10,10,10,12,10,123]
           renderer.multiline     = true
           renderer.padding       = [0,1]
-          renderer.width         = 1000
+          renderer.width         = 192
         end
       end
       @format_table
@@ -115,11 +141,11 @@ module MmTool
     def stream_table
       unless @stream_table
         @stream_table = stream_table_datasource.render(:unicode) do |renderer|
-          renderer.alignments    = [:center, :left, :left, :right, :right, :left, :left, :left, :left]
-          renderer.column_widths = [5,10,10,5,10,5,23,50,35]
+          renderer.alignments    = [:center, :left, :left, :right, :right, :left, :left, :left, :left, :left]
+          renderer.column_widths = [5,10,10,5,10,5,23,50,8,35]
           renderer.multiline     = true
           renderer.padding       = [0,1]
-          renderer.width         = 1000
+          renderer.width         = 192
         end # do
       end
       @stream_table
@@ -151,6 +177,11 @@ module MmTool
       @streams.each {|stream| command << "   #{stream.instruction_disposition}" if stream.instruction_disposition }
       @streams.each do |stream|
         stream.instruction_metadata.each { |instruction| command << "   #{instruction}" }
+      end
+
+      if @defaults[:containers_preferred][0].downcase == 'mkv'
+        command << "   -metadata MM_TOOL_ENCODED=\"true\" \\" if @streams.count {|stream| stream.transcode?} > 0
+        command << "   -metadata MM_TOOL_WRITTEN=\"true\" \\" if modify_streams?
       end
 
       command << "   -metadata title=\"#{format_title}\" \\" if format_title
@@ -207,8 +238,8 @@ module MmTool
     #------------------------------------------------------------
     def format_table_datasource
       unless @format_table
-        @format_table = TTY::Table.new(header: %w(Duration: Size: Bitrate: Title:))
-        @format_table << [format_duration, format_size, format_bitrate, format_title]
+        @format_table = TTY::Table.new(header: ['Duration:', 'Size:', 'Bitrate:', 'mm_encoded:', 'mm_wrote:', 'Title:'])
+        @format_table << [format_duration, format_size, format_bitrate, format_mm_tool_encoded, format_mm_tool_written, format_title]
       end
       @format_table
     end
@@ -220,8 +251,8 @@ module MmTool
     def stream_table_datasource
       unless @table
         # Ensure that when we add the headers, they specifically are left-aligned.
-        headers = %w(index codec type w/# h/layout lang disposition title action(s))
-                      .map { |header| {:value => header, :alignment => :left} }
+        headers = ['index', 'codec', 'type', 'w/#', 'h/layout', 'lang', 'disposition', 'title', 'touched?', 'action(s)']
+          .map { |header| {:value => header, :alignment => :left} }
 
         @table = TTY::Table.new(header: headers)
 
@@ -235,6 +266,7 @@ module MmTool
           row << stream.language
           row << stream.dispositions
           row << stream.title
+          row << stream.mm_tool_encoded_stream
           row << stream.action_label
           @table << row
         end

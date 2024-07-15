@@ -204,7 +204,7 @@ module MmTool
 
         when '--no-transcode'
           @defaults[:transcode] = false
-          @defaults.tempfile = nil
+          @application.tempfile = nil
 
         when '--ignore-files'
           @defaults[:ignore_files] = true
@@ -306,7 +306,7 @@ module MmTool
             OutputHelper.print_error_and_exit("Error: option #{C.bold(args[0])} was specified, but I don't know what that means.")
           end
 
-          # Otherwise, check for existence of the path, and warn or proceed.
+          # Otherwise, check for existence of the path, and proceed or warn.
           path = File.expand_path(args[0])
           if File.exist?(path)
             @application.run(path)
